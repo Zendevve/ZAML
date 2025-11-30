@@ -17,21 +17,23 @@ const DEFAULT_CATEGORIES = ['UI', 'Combat', 'Utility', 'Economy', 'Questing', 'P
 })
 export class AppComponent {
   addonService = inject(AddonService);
-  
+
   // State from service
   installations = this.addonService.installations.asReadonly();
   activeInstallation = this.addonService.activeInstallation;
   addons = this.addonService.addons;
-  
+
   // Local UI state
   newRepoUrl = signal('');
   selectedCategory = signal<AddonCategory | 'All'>('All');
+  statusFilter = signal<AddonStatus | 'All'>('All');
   selectedAddonIds = signal<Set<string>>(new Set());
   searchTerm = signal('');
   sortBy = signal<SortKey>('name');
   sortDirection = signal<'asc' | 'desc'>('asc');
   actionInProgress = signal<Record<string, ActionType | null>>({});
-  
+  isSettingsOpen = signal(false);
+
   categories = computed(() => {
     const allAddons = this.addons();
     const uniqueCategories = [...new Set(allAddons.map(a => a.category))].sort();
@@ -40,6 +42,7 @@ export class AppComponent {
 
   filteredAddons = computed(() => {
     const category = this.selectedCategory();
+    const status = this.statusFilter();
     const allAddons = this.addons();
     const term = this.searchTerm().toLowerCase();
     const sortKey = this.sortBy();
@@ -50,7 +53,12 @@ export class AppComponent {
       ? allAddons
       : allAddons.filter(addon => addon.category === category);
 
-    // 2. Filter by search term
+    // 2. Filter by status
+    if (status !== 'All') {
+      addons = addons.filter(addon => addon.status === status);
+    }
+
+    // 3. Filter by search term
     if (term) {
       addons = addons.filter(addon =>
         addon.name.toLowerCase().includes(term) ||
@@ -58,18 +66,18 @@ export class AppComponent {
       );
     }
 
-    // 3. Sort
+    // 4. Sort
     return addons.sort((a, b) => {
       const valA = a[sortKey].toLowerCase();
       const valB = b[sortKey].toLowerCase();
-      
+
       let comparison = 0;
       if (valA > valB) {
         comparison = 1;
       } else if (valA < valB) {
         comparison = -1;
       }
-      
+
       return direction === 'asc' ? comparison : -comparison;
     });
   });
@@ -114,15 +122,15 @@ export class AppComponent {
   toggleSelectAllVisible(): void {
     const allVisibleSelected = this.areAllFilteredAddonsSelected();
     const visibleIds = this.filteredAddons().map(a => a.id);
-    
+
     this.selectedAddonIds.update(ids => {
-        const newIds = new Set(ids);
-        if (allVisibleSelected) {
-            visibleIds.forEach(id => newIds.delete(id));
-        } else {
-            visibleIds.forEach(id => newIds.add(id));
-        }
-        return newIds;
+      const newIds = new Set(ids);
+      if (allVisibleSelected) {
+        visibleIds.forEach(id => newIds.delete(id));
+      } else {
+        visibleIds.forEach(id => newIds.add(id));
+      }
+      return newIds;
     });
   }
 
@@ -130,7 +138,7 @@ export class AppComponent {
     this.addonService.bulkEnable(this.selectedAddonIds());
     this.selectedAddonIds.set(new Set());
   }
-  
+
   bulkDisableSelected(): void {
     this.addonService.bulkDisable(this.selectedAddonIds());
     this.selectedAddonIds.set(new Set());
@@ -138,11 +146,11 @@ export class AppComponent {
 
   bulkDeleteSelected(): void {
     if (confirm(`Are you sure you want to delete ${this.selectedAddonIds().size} addon(s)? This cannot be undone.`)) {
-        this.addonService.bulkDelete(this.selectedAddonIds());
-        this.selectedAddonIds.set(new Set());
+      this.addonService.bulkDelete(this.selectedAddonIds());
+      this.selectedAddonIds.set(new Set());
     }
   }
-  
+
   changeInstallation(event: Event) {
     const selectElement = event.target as HTMLSelectElement;
     this.addonService.switchInstallation(selectElement.value);
@@ -166,6 +174,38 @@ export class AppComponent {
     if (newCategory && newCategory.trim() !== '') {
       this.addonService.updateAddonCategory(addon.id, newCategory.trim());
     }
+  }
+
+  exportAddons() {
+    const json = this.addonService.exportAddons();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `addons-${this.activeInstallation()?.id || 'export'}.json`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  importAddons(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result as string;
+        if (content) {
+          const success = this.addonService.importAddons(content);
+          if (success) {
+            alert('Addons imported successfully!');
+          } else {
+            alert('Failed to import addons. Invalid file.');
+          }
+        }
+      };
+      reader.readAsText(file);
+    }
+    input.value = '';
   }
 
   private async handleAction(id: string, actionType: ActionType, actionFn: () => Promise<void>) {
@@ -192,7 +232,7 @@ export class AppComponent {
   async onDelete(id: string) {
     await this.handleAction(id, 'delete', () => this.addonService.deleteAddon(id));
   }
-  
+
   getStatusColor(status: AddonStatus): string {
     switch (status) {
       case 'enabled':

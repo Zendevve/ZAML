@@ -13,6 +13,9 @@ export interface Addon {
   updateAvailable?: string; // e.g., 'v1.2.1'
   installProgress?: number;
   brokenReason?: string;
+  subAddons?: Addon[];
+  currentBranch?: string;
+  availableBranches?: string[];
 }
 
 export interface Installation {

@@ -2,26 +2,34 @@
   "name": "addon-manager",
   "private": true,
   "version": "0.0.0",
+  "main": "main.cjs",
   "type": "module",
+  "description": "Zen Addons Manager",
+  "author": "Zen",
   "scripts": {
     "dev": "ng serve",
     "build": "ng build",
-    "preview": "ng serve --configuration=production"
+    "preview": "ng serve --configuration=production",
+    "electron:start": "electron . --dev",
+    "electron:prod": "ng build && electron .",
+    "package": "ng build && electron-builder"
   },
   "dependencies": {
-    "rxjs": "^7.8.2",
-    "@angular/platform-browser": "^21.0.0",
-    "@angular/forms": "^21.0.1",
-    "@angular/common": "^21.0.0",
-    "@angular/compiler": "^21.0.0",
-    "@angular/core": "^21.0.0",
     "@angular/build": "^21.0.0",
     "@angular/cli": "^21.0.0",
+    "@angular/common": "^21.0.0",
+    "@angular/compiler": "^21.0.0",
     "@angular/compiler-cli": "^21.0.0",
+    "@angular/core": "^21.0.0",
+    "@angular/forms": "^21.0.1",
+    "@angular/platform-browser": "^21.0.0",
+    "rxjs": "^7.8.2",
     "tailwindcss": "latest"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "electron": "^39.2.4",
+    "electron-builder": "^26.0.12",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

@@ -16,6 +16,13 @@ export class AddonService {
 
   addons = computed(() => this.activeInstallation()?.addons ?? []);
 
+  settings = signal({
+    autoUpdate: false,
+    showBetaVersions: false,
+    scanInterval: 60,
+    theme: 'dark'
+  });
+
   constructor() {
     this.loadInitialData();
   }
@@ -23,21 +30,44 @@ export class AddonService {
   private loadInitialData() {
     const initialInstallations: Installation[] = [
       {
-        id: 'wow_retail',
-        name: 'World of Warcraft: Retail',
-        path: 'C:/Program Files/World of Warcraft/_retail_',
+        id: 'wotlk',
+        name: 'Wrath of the Lich King',
+        path: 'D:/Games/WoW/3.3.5a',
         addons: [
-          { id: '1', name: 'BrutalUI', author: 'DevCore', version: '1.2.0', description: 'A complete UI overhaul with a minimalist and brutalist aesthetic.', repositoryUrl: 'https://github.com/user/BrutalUI', status: 'enabled', category: 'UI', updateAvailable: '1.2.1' },
-          { id: '2', name: 'DamageMeterX', author: 'Metrics Inc.', version: '3.4.5', description: 'Advanced combat analytics and damage tracking.', repositoryUrl: 'https://github.com/user/DamageMeterX', status: 'disabled', category: 'Combat' },
+          { id: '1', name: 'GearScore', author: 'Mirrikat45', version: '3.1.15', description: 'Calculates a score based on the item level of a player\'s gear.', repositoryUrl: 'https://github.com/user/GearScore', status: 'enabled', category: 'Utility', updateAvailable: '3.1.17' },
+          {
+            id: '2',
+            name: 'Deadly Boss Mods',
+            author: 'MysticalOS',
+            version: '3.3.5',
+            description: 'Raid and dungeon warnings.',
+            repositoryUrl: 'https://github.com/user/DBM',
+            status: 'enabled',
+            category: 'Combat',
+            subAddons: [
+              { id: '2-1', name: 'DBM-Core', author: 'MysticalOS', version: '3.3.5', description: 'Core functionality', repositoryUrl: '', status: 'enabled', category: 'Combat' },
+              { id: '2-2', name: 'DBM-Raids-WotLK', author: 'MysticalOS', version: '3.3.5', description: 'WotLK Raids', repositoryUrl: '', status: 'enabled', category: 'Combat' }
+            ]
+          },
+          { id: '3', name: 'QuestHelper', author: 'Zorb', version: '1.4.1', description: 'Quest objective tracker and route optimizer.', repositoryUrl: 'https://github.com/user/QuestHelper', status: 'disabled', category: 'Questing', currentBranch: 'master', availableBranches: ['master', 'dev', 'feature/new-ui'] }
         ]
       },
       {
-        id: 'wow_classic',
-        name: 'World of Warcraft: Classic',
-        path: 'C:/Program Files/World of Warcraft/_classic_',
+        id: 'cata',
+        name: 'Cataclysm',
+        path: 'D:/Games/WoW/4.3.4',
         addons: [
-          { id: '3', name: 'AutoSellJunk', author: 'QoL-Master', version: '0.9.1', description: 'Automatically sells gray quality items to vendors.', repositoryUrl: 'https://gitlab.com/user/AutoSellJunk', status: 'enabled', category: 'Utility' },
-          { id: '4', name: 'AuctioneerPro', author: 'GoldMakers', version: '2.1.0', description: 'Economy helper for scanning and posting on the auction house.', repositoryUrl: 'https://github.com/user/AuctioneerPro', status: 'broken', category: 'Economy', brokenReason: `Dependency 'CoreLib' is missing.` }
+          { id: '4', name: 'Recount', author: 'Cryect', version: '4.3.0', description: 'Damage and healing meter.', repositoryUrl: 'https://github.com/user/Recount', status: 'enabled', category: 'Combat' },
+          { id: '5', name: 'Bagnon', author: 'Tuller', version: '4.3.4', description: 'Single window display for your inventory and bank.', repositoryUrl: 'https://github.com/user/Bagnon', status: 'broken', category: 'UI', brokenReason: 'Incompatible API version' }
+        ]
+      },
+      {
+        id: 'mop',
+        name: 'Mists of Pandaria',
+        path: 'D:/Games/WoW/5.4.8',
+        addons: [
+          { id: '6', name: 'ElvUI', author: 'Elv', version: '6.02', description: 'A full UI replacement.', repositoryUrl: 'https://github.com/user/ElvUI', status: 'enabled', category: 'UI' },
+          { id: '7', name: 'WeakAuras 2', author: 'Mirrormn', version: '2.0.8', description: 'Powerful and flexible framework for displaying graphics.', repositoryUrl: 'https://github.com/user/WeakAuras2', status: 'enabled', category: 'Combat' }
         ]
       }
     ];
@@ -61,7 +91,7 @@ export class AddonService {
       )
     );
   }
-  
+
   addAddon(repoUrl: string) {
     const urlParts = repoUrl.replace(/\/$/, '').split('/');
     const repoName = urlParts.pop()?.replace('.git', '') || 'new-addon';
@@ -123,11 +153,19 @@ export class AddonService {
       )
     );
   }
-  
+
   updateAddonCategory(id: string, category: string) {
     this.updateActiveInstallationAddons(addons =>
       addons.map(addon =>
         addon.id === id ? { ...addon, category } : addon
+      )
+    );
+  }
+
+  switchBranch(id: string, branch: string) {
+    this.updateActiveInstallationAddons(addons =>
+      addons.map(addon =>
+        addon.id === id ? { ...addon, currentBranch: branch, version: `${addon.version.split('-')[0]}-${branch}` } : addon
       )
     );
   }
@@ -191,5 +229,33 @@ export class AddonService {
 
   bulkDelete(ids: Set<string>) {
     this.updateActiveInstallationAddons(addons => addons.filter(addon => !ids.has(addon.id)));
+  }
+  exportAddons(): string {
+    return JSON.stringify(this.addons(), null, 2);
+  }
+
+  importAddons(json: string): boolean {
+    try {
+      const imported = JSON.parse(json);
+      if (Array.isArray(imported)) {
+        const activeId = this.activeInstallationId();
+        if (activeId) {
+          this.installations.update(insts => insts.map(inst => {
+            if (inst.id === activeId) {
+              return { ...inst, addons: imported };
+            }
+            return inst;
+          }));
+          return true;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to import addons', e);
+    }
+    return false;
+  }
+
+  updateSetting(key: string, value: any) {
+    this.settings.update(s => ({ ...s, [key]: value }));
   }
 }
