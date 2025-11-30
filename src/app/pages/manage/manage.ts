@@ -26,4 +26,8 @@ export class ManageComponent {
       case 'outdated': return 'status-outdated';
     }
   }
+
+  switchVersion(id: string) {
+    this.addonService.setActiveInstallation(id);
+  }
 }

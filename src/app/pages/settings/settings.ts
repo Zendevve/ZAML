@@ -1,10 +1,11 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { AddonService } from '../../services/addon';
 import { ElectronService } from '../../services/electron';
 
 @Component({
   selector: 'app-settings',
-  imports: [],
+  imports: [FormsModule],
   templateUrl: './settings.html',
   styleUrl: './settings.css'
 })
@@ -12,26 +13,20 @@ export class SettingsComponent implements OnInit {
   addonService = inject(AddonService);
   electronService = inject(ElectronService);
 
-  currentDirectory = signal('');
+  // UI State
+  showAddDialog = signal(false);
+  selectedVersion = signal('');
+  customDirectory = signal('');
+
+  // Config State
   autoUpdate = signal(true);
   showBetaVersions = signal(false);
   theme = signal<'dark' | 'light'>('dark');
 
-  expandedSections = signal<Set<string>>(new Set(['directory']));
+  expandedSections = signal<Set<string>>(new Set(['installations']));
 
   async ngOnInit() {
-    // Try to load from localStorage first
-    const saved = this.addonService.addonsDirectory$();
-    if (saved) {
-      this.currentDirectory.set(saved);
-    } else {
-      // Auto-detect WoW folder
-      const result = await this.electronService.autoDetectWowFolder();
-      if (result.success && result.path) {
-        this.currentDirectory.set(result.path);
-        this.addonService.setAddonsDirectory(result.path);
-      }
-    }
+    this.addonService.initializeFromStorage();
   }
 
   toggleSection(section: string) {
@@ -50,14 +45,49 @@ export class SettingsComponent implements OnInit {
     return this.expandedSections().has(section);
   }
 
-  async changeDirectory() {
+  // Installation Management
+  showAddInstallationDialog() {
+    this.showAddDialog.set(true);
+    this.selectedVersion.set('');
+    this.customDirectory.set('');
+  }
+
+  async browseDirectory() {
     const dir = await this.electronService.openDirectoryDialog();
     if (dir) {
-      this.currentDirectory.set(dir);
-      this.addonService.setAddonsDirectory(dir);
+      this.customDirectory.set(dir);
     }
   }
 
+  addInstallation() {
+    const versionValue = this.selectedVersion();
+    const directory = this.customDirectory();
+
+    if (!versionValue || !directory) return;
+
+    const [name, version] = versionValue.split('|');
+    this.addonService.addInstallation(name, version, directory);
+    this.showAddDialog.set(false);
+  }
+
+  setActive(id: string) {
+    this.addonService.setActiveInstallation(id);
+  }
+
+  async editDirectory(id: string) {
+    const dir = await this.electronService.openDirectoryDialog();
+    if (dir) {
+      this.addonService.updateInstallationDirectory(id, dir);
+    }
+  }
+
+  removeInstallation(id: string) {
+    if (confirm('Are you sure you want to remove this installation?')) {
+      this.addonService.removeInstallation(id);
+    }
+  }
+
+  // Import/Export
   exportAddons() {
     const addons = this.addonService.addons$();
     const json = JSON.stringify(addons, null, 2);

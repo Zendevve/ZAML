@@ -3,7 +3,25 @@
     <div class="header-content">
       <div>
         <h1>Manage Addons</h1>
-        <p class="subtitle">{{ addonService.stats().total }} addons installed</p>
+        <div class="subtitle-row">
+          <p class="subtitle">{{ addonService.stats().total }} addons installed</p>
+
+          <!-- Version Selector -->
+          @if (addonService.installations$().length > 1) {
+            <div class="version-selector">
+              <span class="separator">•</span>
+              <select [value]="addonService.activeInstallationId$()"
+                      (change)="switchVersion($any($event.target).value)"
+                      class="version-select">
+                @for (install of addonService.installations$(); track install.id) {
+                  <option [value]="install.id">
+                    {{ install.name }} ({{ install.version }})
+                  </option>
+                }
+              </select>
+            </div>
+          }
+        </div>
       </div>
       <div class="header-actions">
         <button class="secondary-button">Update All</button>

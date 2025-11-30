@@ -27,18 +27,36 @@ export interface CatalogueAddon {
   downloads?: number;
 }
 
+export interface WowInstallation {
+  id: string;              // Unique ID (timestamp-based)
+  name: string;            // Display name ("Vanilla", "Burning Crusade", etc.)
+  version: string;         // Version number ("1.12", "2.4.3", etc.)
+  directory: string;       // Full path to Interface/AddOns folder
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class AddonService {
   private electronService = inject(ElectronService);
 
-  // State
-  private addonsDirectory = signal<string>('');
+  // Multi-version state
+  private installations = signal<WowInstallation[]>([]);
+  private activeInstallationId = signal<string>('');
   private addons = signal<Addon[]>([]);
 
+  readonly installations$ = this.installations.asReadonly();
+  readonly activeInstallationId$ = this.activeInstallationId.asReadonly();
   readonly addons$ = this.addons.asReadonly();
-  readonly addonsDirectory$ = this.addonsDirectory.asReadonly();
+
+  readonly activeInstallation = computed(() =>
+    this.installations().find(i => i.id === this.activeInstallationId())
+  );
+
+  // For backward compatibility and ease of use
+  readonly addonsDirectory$ = computed(() =>
+    this.activeInstallation()?.directory || ''
+  );
 
   readonly stats = computed(() => {
     const all = this.addons();
@@ -52,9 +70,10 @@ export class AddonService {
 
   // Load real addons from disk
   async loadAddonsFromDisk() {
-    const directory = this.addonsDirectory();
+    const directory = this.addonsDirectory$();
     if (!directory) {
-      console.warn('No addons directory set');
+      // console.warn('No active installation set');
+      this.addons.set([]);
       return;
     }
 
@@ -62,6 +81,7 @@ export class AddonService {
 
     if (!result.success || !result.addons) {
       console.error('Failed to scan addons:', result.error);
+      this.addons.set([]);
       return;
     }
 
@@ -81,20 +101,100 @@ export class AddonService {
     this.addons.set(loadedAddons);
   }
 
-  // Set addons directory
-  setAddonsDirectory(path: string) {
-    this.addonsDirectory.set(path);
-    localStorage.setItem('zen-addons-directory', path);
-    // Auto-load addons when directory is set
+  // Multi-version installation management
+  addInstallation(name: string, version: string, directory: string) {
+    const newInstall: WowInstallation = {
+      id: `install-${Date.now()}`,
+      name,
+      version,
+      directory
+    };
+
+    this.installations.update(installs => [...installs, newInstall]);
+
+    // Set as active if it's the first one
+    if (this.installations().length === 1) {
+      this.activeInstallationId.set(newInstall.id);
+    }
+
+    this.persistInstallations();
+  }
+
+  removeInstallation(id: string) {
+    this.installations.update(installs => installs.filter(i => i.id !== id));
+
+    // If we removed the active one, set a new active
+    if (this.activeInstallationId() === id) {
+      const remaining = this.installations();
+      const newActive = remaining.length > 0 ? remaining[0].id : '';
+      this.setActiveInstallation(newActive);
+    }
+
+    this.persistInstallations();
+  }
+
+  setActiveInstallation(id: string) {
+    this.activeInstallationId.set(id);
+    localStorage.setItem('zen-active-installation-id', id);
     this.loadAddonsFromDisk();
   }
 
-  // Initialize from localStorage
-  initializeFromStorage() {
-    const savedDirectory = localStorage.getItem('zen-addons-directory');
-    if (savedDirectory) {
-      this.addonsDirectory.set(savedDirectory);
+  updateInstallationDirectory(id: string, newDirectory: string) {
+    this.installations.update(installs =>
+      installs.map(i => i.id === id ? { ...i, directory: newDirectory } : i)
+    );
+    this.persistInstallations();
+
+    // Reload if it's the active one
+    if (this.activeInstallationId() === id) {
       this.loadAddonsFromDisk();
+    }
+  }
+
+  private persistInstallations() {
+    localStorage.setItem('zen-wow-installations', JSON.stringify(this.installations()));
+  }
+
+  // Initialize from localStorage (with migration)
+  initializeFromStorage() {
+    // Load installations
+    const savedInstallations = localStorage.getItem('zen-wow-installations');
+    if (savedInstallations) {
+      try {
+        this.installations.set(JSON.parse(savedInstallations));
+      } catch (e) {
+        console.error('Failed to parse installations', e);
+      }
+    } else {
+      // Migration: check for old single-directory setup
+      const oldDirectory = localStorage.getItem('zen-addons-directory');
+      if (oldDirectory) {
+        this.addInstallation('WoW', '3.3.5', oldDirectory);
+        localStorage.removeItem('zen-addons-directory');
+      }
+    }
+
+    // Load active installation ID
+    const savedActiveId = localStorage.getItem('zen-active-installation-id');
+    if (savedActiveId && this.installations().some(i => i.id === savedActiveId)) {
+      this.activeInstallationId.set(savedActiveId);
+      this.loadAddonsFromDisk();
+    } else if (this.installations().length > 0) {
+      // Set first as active if none set
+      this.setActiveInstallation(this.installations()[0].id);
+    }
+  }
+
+  // Legacy method for backward compatibility / single directory setting
+  setAddonsDirectory(path: string) {
+    // If we have installations, update the active one
+    const activeId = this.activeInstallationId();
+    if (activeId) {
+      this.updateInstallationDirectory(activeId, path);
+    } else {
+      // Create first installation
+      this.addInstallation('WoW', '3.3.5', path);
+      // addInstallation sets it active if it's the first one, but we persist inside addInstallation
     }
   }
 
@@ -223,7 +323,7 @@ export class AddonService {
   });
 
   async installFromCatalogue(catalogueAddon: CatalogueAddon) {
-    const directory = this.addonsDirectory();
+    const directory = this.addonsDirectory$();
     if (!directory) {
       console.error('No addons directory set');
       return;

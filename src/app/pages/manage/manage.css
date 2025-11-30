@@ -249,3 +249,34 @@
   background: #ef4444;
   color: white;
 }
+
+/* Version Selector */
+.subtitle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.separator {
+  color: var(--text-muted);
+}
+
+.version-select {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.version-select:hover {
+  border-color: var(--primary-color);
+}
+
+.version-select option {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}

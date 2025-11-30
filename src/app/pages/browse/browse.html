@@ -12,11 +12,6 @@
         {{ isInstalling() ? 'Installing...' : 'Install from URL' }}
       </button>
     </div>
-    @if (installMessage(); as msg) {
-    <div class="install-message" [class.error]="msg.type === 'error'">
-      {{ msg.text }}
-    </div>
-    }
   </div>
 
   <div class="search-section">
