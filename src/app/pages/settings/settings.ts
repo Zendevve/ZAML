@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { AddonService } from '../../services/addon';
+import { ElectronService } from '../../services/electron';
 
 @Component({
   selector: 'app-settings',
@@ -9,6 +10,7 @@ import { AddonService } from '../../services/addon';
 })
 export class SettingsComponent {
   addonService = inject(AddonService);
+  electronService = inject(ElectronService);
 
   currentDirectory = signal('D:/Games/WoW/3.3.5a/Interface/AddOns');
   autoUpdate = signal(true);
@@ -33,10 +35,11 @@ export class SettingsComponent {
     return this.expandedSections().has(section);
   }
 
-  changeDirectory() {
-    // This would use Electron's IPC to open a directory picker
-    // For now, just show a placeholder
-    alert('Directory picker would open here via Electron IPC');
+  async changeDirectory() {
+    const dir = await this.electronService.openDirectoryDialog();
+    if (dir) {
+      this.currentDirectory.set(dir);
+    }
   }
 
   exportAddons() {
@@ -61,7 +64,6 @@ export class SettingsComponent {
       try {
         const json = e.target?.result as string;
         const addons = JSON.parse(json);
-        // In a real app, you'd validate and merge this data
         console.log('Imported addons:', addons);
         alert(`Successfully imported ${addons.length} addons`);
       } catch (error) {
