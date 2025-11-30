@@ -3,6 +3,9 @@ import { FormsModule } from '@angular/forms';
 import { AddonService } from '../../services/addon';
 import { ElectronService } from '../../services/electron';
 
+import { DialogService } from '../../services/dialog.service';
+import { ToastService } from '../../services/toast.service';
+
 @Component({
   selector: 'app-settings',
   imports: [FormsModule],
@@ -12,6 +15,8 @@ import { ElectronService } from '../../services/electron';
 export class SettingsComponent implements OnInit {
   addonService = inject(AddonService);
   electronService = inject(ElectronService);
+  dialogService = inject(DialogService);
+  toastService = inject(ToastService);
 
   // UI State
   showAddDialog = signal(false);
@@ -68,6 +73,7 @@ export class SettingsComponent implements OnInit {
     const [name, version] = versionValue.split('|');
     this.addonService.addInstallation(name, version, directory);
     this.showAddDialog.set(false);
+    this.toastService.success(`Added ${name} installation`);
   }
 
   setActive(id: string) {
@@ -75,15 +81,34 @@ export class SettingsComponent implements OnInit {
   }
 
   async editDirectory(id: string) {
-    const dir = await this.electronService.openDirectoryDialog();
-    if (dir) {
-      this.addonService.updateInstallationDirectory(id, dir);
+    try {
+      const dir = await this.electronService.openDirectoryDialog();
+      if (dir) {
+        this.addonService.updateInstallationDirectory(id, dir);
+        this.toastService.success('Installation directory updated');
+      }
+    } catch (error) {
+      console.error('[Error] [Edit Directory]', { installationId: id, error });
+      this.toastService.error('Failed to update directory. Check permissions.');
     }
   }
 
-  removeInstallation(id: string) {
-    if (confirm('Are you sure you want to remove this installation?')) {
-      this.addonService.removeInstallation(id);
+  async removeInstallation(id: string) {
+    const confirmed = await this.dialogService.confirm({
+      title: 'Remove Installation',
+      message: 'Are you sure you want to remove this installation? This will not delete the files on disk.',
+      confirmText: 'Remove',
+      type: 'danger'
+    });
+
+    if (confirmed) {
+      try {
+        this.addonService.removeInstallation(id);
+        this.toastService.success('Installation removed');
+      } catch (error) {
+        console.error('[Error] [Remove Installation]', { installationId: id, error });
+        this.toastService.error('Failed to remove installation.');
+      }
     }
   }
 

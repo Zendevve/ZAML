@@ -56,18 +56,39 @@ export class BrowseComponent {
 
     this.isInstalling.set(true);
 
-    const result = await this.electronService.installAddon(url, addonsFolder, method);
+    try {
+      const result = await this.electronService.installAddon(url, addonsFolder, method);
 
-    this.isInstalling.set(false);
+      if (result.success && result.addonName) {
+        this.toastService.success(`Successfully installed "${result.addonName}"`);
+        this.manualUrl.set('');
 
-    if (result.success && result.addonName) {
-      this.toastService.success(`Successfully installed "${result.addonName}"`);
-      this.manualUrl.set('');
+        // Reload addons in Manage page
+        await this.addonService.loadAddonsFromDisk();
+      } else {
+        // Provide user-friendly error messages based on error type
+        console.error('[Error] [Install Addon]', { url, method, error: result.error });
 
-      // Reload addons in Manage page
-      await this.addonService.loadAddonsFromDisk();
-    } else {
-      this.toastService.error(`Installation failed: ${result.error}`);
+        let errorMessage = 'Installation failed';
+        if (result.error?.includes('ENOTFOUND') || result.error?.includes('network')) {
+          errorMessage = 'Network error. Check your connection and try again.';
+        } else if (result.error?.includes('git') || result.error?.includes('clone')) {
+          errorMessage = 'Failed to clone repository. Check the URL and try again.';
+        } else if (result.error?.includes('EACCES') || result.error?.includes('permission')) {
+          errorMessage = 'Permission denied. Check directory permissions.';
+        } else if (result.error?.includes('.toc')) {
+          errorMessage = 'Invalid addon structure. Missing .toc file.';
+        } else if (result.error) {
+          errorMessage = `Installation failed: ${result.error}`;
+        }
+
+        this.toastService.error(errorMessage);
+      }
+    } catch (error) {
+      console.error('[Error] [Install Addon]', { url, method, error });
+      this.toastService.error('An unexpected error occurred. Check the console for details.');
+    } finally {
+      this.isInstalling.set(false);
     }
   }
 }

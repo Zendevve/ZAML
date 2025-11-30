@@ -8,18 +8,17 @@
 
           <!-- Version Selector -->
           @if (addonService.installations$().length > 1) {
-            <div class="version-selector">
-              <span class="separator">•</span>
-              <select [value]="addonService.activeInstallationId$()"
-                      (change)="switchVersion($any($event.target).value)"
-                      class="version-select">
-                @for (install of addonService.installations$(); track install.id) {
-                  <option [value]="install.id">
-                    {{ install.name }} ({{ install.version }})
-                  </option>
-                }
-              </select>
-            </div>
+          <div class="version-selector">
+            <span class="separator">•</span>
+            <select [value]="addonService.activeInstallationId$()" (change)="switchVersion($any($event.target).value)"
+              class="version-select">
+              @for (install of addonService.installations$(); track install.id) {
+              <option [value]="install.id">
+                {{ install.name }} ({{ install.version }})
+              </option>
+              }
+            </select>
+          </div>
           }
         </div>
       </div>
@@ -71,8 +70,8 @@
       <div class="col-version">{{ addon.version }}</div>
       <div class="col-branch">
         @if (addon.availableBranches && addon.availableBranches.length > 1) {
-        <select [value]="addon.branch" (change)="addonService.switchBranch(addon.id, $any($event.target).value)"
-          class="branch-select">
+        <select [value]="addon.branch" (change)="switchBranch(addon.id, $any($event.target).value)"
+          [disabled]="isAddonDisabled(addon.id)" class="branch-select">
           @for (branch of addon.availableBranches; track branch) {
           <option [value]="branch">{{ branch }}</option>
           }
@@ -87,15 +86,17 @@
       <div class="col-actions">
         <div class="action-buttons">
           @if (addon.status === 'outdated') {
-          <button class="action-btn primary" (click)="addonService.updateAddon(addon.id)" title="Update">
+          <button class="action-btn primary" (click)="updateAddon(addon.id)" [disabled]="isAddonDisabled(addon.id)"
+            title="Update">
             Update
           </button>
           }
           <button class="action-btn" (click)="addonService.toggleStatus(addon.id)"
-            [title]="addon.status === 'enabled' ? 'Disable' : 'Enable'">
+            [disabled]="operatingAddonId() !== null" [title]="addon.status === 'enabled' ? 'Disable' : 'Enable'">
             {{ addon.status === 'enabled' ? 'Disable' : 'Enable' }}
           </button>
-          <button class="action-btn danger" (click)="addonService.removeAddon(addon.id)" title="Remove">
+          <button class="action-btn danger" (click)="removeAddon(addon.id)" [disabled]="isAddonDisabled(addon.id)"
+            title="Remove">
             Remove
           </button>
         </div>

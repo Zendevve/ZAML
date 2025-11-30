@@ -5,6 +5,7 @@ A clean, minimal World of Warcraft addon manager built with Angular, Tailwind CS
 ## Features
 
 - **Clean Interface**: Sidebar navigation (Dashboard, Manage, Browse, Settings)
+- **Multi-Version Support**: Manage addons for Vanilla, TBC, WotLK, and more
 - **Addon Management**: Install, update, and remove addons
 - **Git Support**: Install addons from Git repositories with branch switching
 - **Auto-Detection**: Automatically detect WoW installations and addon folders

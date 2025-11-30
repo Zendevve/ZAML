@@ -4,9 +4,12 @@ import { SidebarComponent } from './components/sidebar/sidebar';
 import { ToastComponent } from './components/toast/toast.component';
 import { AddonService } from './services/addon';
 
+import { LoadingOverlayComponent } from './components/shared/loading-overlay.component';
+import { ConfirmDialogComponent } from './components/shared/confirm-dialog.component';
+
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, SidebarComponent, ToastComponent],
+  imports: [RouterOutlet, SidebarComponent, ToastComponent, LoadingOverlayComponent, ConfirmDialogComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
