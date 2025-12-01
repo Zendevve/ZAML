@@ -9,6 +9,7 @@ import { storageService } from '@/services/storage'
 import { electronService } from '@/services/electron'
 import type { WowInstallation } from '@/types/installation'
 import { WOW_VERSIONS } from '@/types/installation'
+import { toast } from 'sonner'
 
 export function Settings() {
   const [installations, setInstallations] = useState<WowInstallation[]>([])
@@ -16,6 +17,7 @@ export function Settings() {
     name: '',
     version: '3.3.5',
     addonsPath: '',
+    executablePath: '',
   })
 
   useEffect(() => {
@@ -29,20 +31,38 @@ export function Settings() {
   const selectFolder = async () => {
     const folder = await electronService.openDirectoryDialog()
     if (folder) {
-      setNewInstallation(prev => ({ ...prev, addonsPath: folder }))
+      // Validate that this is a WoW installation folder
+      const result = await electronService.validateWowPath(folder)
+      if (result.success && result.addonsPath) {
+        setNewInstallation(prev => ({
+          ...prev,
+          addonsPath: result.addonsPath!,
+          executablePath: result.executablePath || '',
+        }))
+        toast.success('WoW installation detected!')
+      } else {
+        toast.error(result.error || 'No WoW executable found in this folder')
+      }
     }
   }
 
   const autoDetect = async () => {
     const result = await electronService.autoDetectWowFolder()
     if (result.success && result.path) {
-      setNewInstallation(prev => ({ ...prev, addonsPath: result.path! }))
+      setNewInstallation(prev => ({
+        ...prev,
+        addonsPath: result.path!,
+        executablePath: result.executablePath || '',
+      }))
+      toast.success('WoW installation auto-detected!')
+    } else {
+      toast.error('Could not auto-detect WoW installation')
     }
   }
 
   const addInstallation = () => {
     if (!newInstallation.name || !newInstallation.addonsPath) {
-      alert('Please provide a name and folder path')
+      toast.error('Please provide a name and select a WoW folder')
       return
     }
 
@@ -50,21 +70,25 @@ export function Settings() {
       name: newInstallation.name,
       version: newInstallation.version,
       addonsPath: newInstallation.addonsPath,
+      executablePath: newInstallation.executablePath,
     })
 
-    setNewInstallation({ name: '', version: '3.3.5', addonsPath: '' })
+    setNewInstallation({ name: '', version: '3.3.5', addonsPath: '', executablePath: '' })
     loadInstallations()
+    toast.success('Installation added!')
   }
 
   const deleteInstallation = (id: string) => {
     if (!confirm('Delete this installation?')) return
     storageService.deleteInstallation(id)
     loadInstallations()
+    toast.success('Installation removed')
   }
 
   const setActive = (id: string) => {
     storageService.setActiveInstallation(id)
     loadInstallations()
+    toast.success('Active installation changed')
   }
 
   return (
@@ -111,13 +135,14 @@ export function Settings() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">AddOns Folder Path</label>
+            <label className="text-sm font-medium">WoW Installation Folder</label>
+            <p className="text-xs text-muted-foreground">Select the folder where Wow.exe is located (not the AddOns folder)</p>
             <div className="flex gap-2">
               <Input
-                placeholder="Path to Interface/AddOns folder"
+                placeholder="Path will be detected automatically"
                 value={newInstallation.addonsPath}
-                onChange={(e) => setNewInstallation(prev => ({ ...prev, addonsPath: e.target.value }))}
-                className="flex-1"
+                readOnly
+                className="flex-1 cursor-not-allowed"
               />
               <Button variant="outline" onClick={selectFolder}>
                 <FolderOpen className="size-4" />
@@ -126,6 +151,9 @@ export function Settings() {
                 Auto-Detect
               </Button>
             </div>
+            {newInstallation.executablePath && (
+              <p className="text-xs text-green-600">✓ Executable found: {newInstallation.executablePath}</p>
+            )}
           </div>
 
           <Button onClick={addInstallation} className="w-full">

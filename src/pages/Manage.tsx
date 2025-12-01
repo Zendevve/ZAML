@@ -399,10 +399,6 @@ export function Manage() {
                   Play
                 </Button>
               )}
-              <Button variant="secondary" className="gap-2" onClick={updateAllGitAddons}>
-                <DownloadCloud className="size-4" />
-                Update All
-              </Button>
               <Button variant="secondary" size="icon" onClick={() => navigate('/settings')}>
                 <Settings className="size-4" />
               </Button>
@@ -537,6 +533,9 @@ export function Manage() {
               </div>
               <div>Updated</div>
               <div className="flex items-center justify-end gap-2">
+                <Button variant="ghost" size="sm" className="gap-1 h-7" onClick={updateAllGitAddons}>
+                  <DownloadCloud className="size-3" /> Update all
+                </Button>
                 <span className="flex items-center gap-1 cursor-pointer hover:text-foreground" onClick={loadAddons}>
                   <RefreshCw className={`size-3 ${loading ? 'animate-spin' : ''}`} /> Refresh
                 </span>
