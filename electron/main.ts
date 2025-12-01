@@ -274,6 +274,39 @@ function setupIpcHandlers() {
     }
   });
 
+  // Search GitHub
+  ipcMain.handle('search-github', async (event, query) => {
+    try {
+      const response = await axios.get('https://api.github.com/search/repositories', {
+        params: {
+          q: `${query} topic:wow-addon language:lua`,
+          sort: 'stars',
+          order: 'desc',
+          per_page: 20
+        },
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'ZenAddonsManager'
+        }
+      });
+
+      const results = response.data.items.map((item: any) => ({
+        name: item.name,
+        full_name: item.full_name,
+        description: item.description,
+        url: item.clone_url,
+        stars: item.stargazers_count,
+        author: item.owner.login,
+        updated_at: item.updated_at
+      }));
+
+      return { success: true, results };
+    } catch (error: any) {
+      console.error('GitHub Search Error:', error.response?.data || error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Delete addon folder
   ipcMain.handle('delete-addon', async (event, addonPath) => {
     try {

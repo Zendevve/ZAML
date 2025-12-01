@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('electron', {
       'git-checkout',
       'git-check-updates',
       'auto-detect-wow-folder',
+      'search-github'
     ]
 
     if (validChannels.includes(channel)) {

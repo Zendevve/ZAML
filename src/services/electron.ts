@@ -100,4 +100,11 @@ export const electronService = {
   async autoDetectWowFolder(): Promise<{ success: boolean; path?: string; error?: string }> {
     return invoke('auto-detect-wow-folder')
   },
+
+  /**
+   * Search GitHub for addons
+   */
+  async searchGithub(query: string): Promise<{ success: boolean; results?: any[]; error?: string }> {
+    return invoke('search-github', query)
+  }
 }

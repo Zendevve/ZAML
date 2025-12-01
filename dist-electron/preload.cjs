@@ -12,7 +12,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
       "git-branches",
       "git-checkout",
       "git-check-updates",
-      "auto-detect-wow-folder"
+      "auto-detect-wow-folder",
+      "search-github"
     ];
     if (validChannels.includes(channel)) {
       return electron.ipcRenderer.invoke(channel, ...args);
