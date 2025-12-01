@@ -1,5 +1,0 @@
-{
-  "name": "Addon Manager",
-  "description": "A brutalist-style desktop application UI for managing, downloading, and updating addons from Git repositories.",
-  "requestFramePermissions": []
-}

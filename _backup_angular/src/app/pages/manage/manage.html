@@ -1,0 +1,130 @@
+<div class="p-8 max-w-[1600px] mx-auto space-y-6">
+  <header class="flex justify-between items-start">
+    <div class="space-y-1">
+      <h1 class="text-3xl font-bold tracking-tight">Manage Addons</h1>
+      <div class="flex items-center gap-4">
+        <p class="text-muted-foreground">{{ addonService.stats().total }} addons installed</p>
+
+        @if (addonService.installations$().length > 1) {
+        <div class="flex items-center gap-2">
+          <span class="text-muted-foreground">•</span>
+          <brn-select [value]="addonService.activeInstallationId$()" (valueChange)="switchVersion($event)">
+            <hlm-select-trigger class="w-48 h-8">
+              <hlm-select-value />
+            </hlm-select-trigger>
+            <hlm-select-content>
+              @for (install of addonService.installations$(); track install.id) {
+              <hlm-option [value]="install.id">
+                {{ install.name }} ({{ install.version }})
+              </hlm-option>
+              }
+            </hlm-select-content>
+          </brn-select>
+        </div>
+        }
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button hlmBtn variant="outline" size="sm">
+        <ng-icon hlm name="lucideRefreshCw" class="mr-2 size-4" />
+        Update All
+      </button>
+      <input hlmInput placeholder="Search addons..." class="w-64" />
+    </div>
+  </header>
+
+  <div class="flex gap-6 pb-4 border-b border-border">
+    <div class="flex items-center gap-2 text-sm">
+      <ng-icon hlm name="lucideCheck" class="text-green-500" />
+      <span>{{ addonService.stats().enabled }} Enabled</span>
+    </div>
+    <div class="flex items-center gap-2 text-sm">
+      <ng-icon hlm name="lucideX" class="text-muted-foreground" />
+      <span>{{ addonService.stats().disabled }} Disabled</span>
+    </div>
+    <div class="flex items-center gap-2 text-sm">
+      <ng-icon hlm name="lucideAlertTriangle" class="text-yellow-500" />
+      <span>{{ addonService.stats().outdated }} Updates</span>
+    </div>
+  </div>
+
+  <div hlmTableContainer class="border rounded-md bg-card">
+    <table hlmTable>
+      <thead hlmTHead>
+        <tr hlmTr>
+          <th hlmTh class="w-12">Status</th>
+          <th hlmTh>Name</th>
+          <th hlmTh>Version</th>
+          <th hlmTh>Branch</th>
+          <th hlmTh>Last Updated</th>
+          <th hlmTh class="text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody hlmTBody>
+        @for (addon of addonService.addons$(); track addon.id) {
+        <tr hlmTr>
+          <td hlmTd>
+            @if (addon.status === 'enabled') {
+            <ng-icon hlm name="lucideCheck" class="text-green-500 size-5" />
+            } @else if (addon.status === 'disabled') {
+            <ng-icon hlm name="lucideX" class="text-muted-foreground size-5" />
+            } @else {
+            <ng-icon hlm name="lucideAlertTriangle" class="text-yellow-500 size-5" />
+            }
+          </td>
+          <td hlmTd>
+            <div class="font-medium">{{ addon.name }}</div>
+            @if (addon.source === 'git' && addon.sourceUrl) {
+            <a [href]="addon.sourceUrl" target="_blank"
+              class="text-xs text-muted-foreground hover:text-primary hover:underline font-mono">
+              {{ addon.sourceUrl }}
+            </a>
+            }
+          </td>
+          <td hlmTd class="font-mono text-xs">{{ addon.version }}</td>
+          <td hlmTd>
+            @if (addon.availableBranches && addon.availableBranches.length > 1) {
+            <brn-select [value]="addon.branch" (valueChange)="switchBranch(addon.id, $event)"
+              [disabled]="isAddonDisabled(addon.id)">
+              <hlm-select-trigger class="w-32 h-8 text-xs">
+                <hlm-select-value />
+              </hlm-select-trigger>
+              <hlm-select-content>
+                @for (branch of addon.availableBranches; track branch) {
+                <hlm-option [value]="branch">
+                  {{ branch }}
+                </hlm-option>
+                }
+              </hlm-select-content>
+            </brn-select>
+            } @else {
+            <span class="text-muted-foreground text-sm">{{ addon.branch || '—' }}</span>
+            }
+          </td>
+          <td hlmTd class="text-muted-foreground text-xs">
+            {{ addon.lastUpdated | date: 'short' }}
+          </td>
+          <td hlmTd class="text-right">
+            <div class="flex justify-end gap-2">
+              @if (addon.status === 'outdated') {
+              <button hlmBtn size="sm" (click)="updateAddon(addon.id)" [disabled]="isAddonDisabled(addon.id)">
+                Update
+              </button>
+              }
+              <button hlmBtn variant="ghost" size="sm" (click)="addonService.toggleStatus(addon.id)"
+                [disabled]="operatingAddonId() !== null">
+                {{ addon.status === 'enabled' ? 'Disable' : 'Enable' }}
+              </button>
+              <button hlmBtn variant="ghost" size="icon" class="text-destructive hover:text-destructive"
+                (click)="removeAddon(addon.id)" [disabled]="isAddonDisabled(addon.id)">
+                <ng-icon hlm name="lucideTrash2" class="size-4" />
+              </button>
+            </div>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,0 +1,232 @@
+<div class="p-8 max-w-4xl mx-auto space-y-6">
+  <header>
+    <h1 class="text-3xl font-bold tracking-tight">Settings</h1>
+    <p class="text-muted-foreground mt-2">Configure your addon manager</p>
+  </header>
+
+  <div class="space-y-4">
+    <!-- WoW Installations -->
+    <section hlmCard>
+      <button hlmCardHeader class="w-full text-left cursor-pointer hover:bg-muted/50"
+        (click)="toggleSection('installations')">
+        <div class="flex items-center justify-between">
+          <h2 hlmCardTitle class="text-lg">WoW Installations</h2>
+          <ng-icon hlm name="lucideChevronDown" class="size-5 transition-transform"
+            [class.rotate-180]="isSectionExpanded('installations')" />
+        </div>
+      </button>
+
+      @if (isSectionExpanded('installations')) {
+      <div hlmCardContent class="space-y-4">
+        <p class="text-sm text-muted-foreground">
+          Manage your World of Warcraft installations.
+        </p>
+
+        <div class="space-y-3">
+          @for (install of addonService.installations$(); track install.id) {
+          <article hlmCard [class.ring-2]="install.id === addonService.activeInstallationId$()"
+            [class.ring-primary]="install.id === addonService.activeInstallationId$()">
+            <div hlmCardHeader class="flex-row items-start justify-between space-y-0 pb-3">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <h3 hlmCardTitle class="text-base">{{ install.name }}</h3>
+                  <span hlmBadge variant="outline" class="font-mono text-xs">v{{ install.version }}</span>
+                  @if (install.id === addonService.activeInstallationId$()) {
+                  <span hlmBadge class="text-xs">Active</span>
+                  }
+                </div>
+                <p hlmCardDescription class="text-xs font-mono">{{ install.directory }}</p>
+              </div>
+            </div>
+            <div hlmCardFooter class="flex gap-2">
+              @if (install.id !== addonService.activeInstallationId$()) {
+              <button hlmBtn variant="outline" size="sm" (click)="setActive(install.id)">Set Active</button>
+              }
+              <button hlmBtn variant="outline" size="sm" (click)="editDirectory(install.id)">
+                <ng-icon hlm name="lucideFolderOpen" class="mr-2 size-4" />
+                Change Path
+              </button>
+              <button hlmBtn variant="ghost" size="icon-sm" class="text-destructive hover:text-destructive"
+                (click)="removeInstallation(install.id)">
+                <ng-icon hlm name="lucideTrash2" class="size-4" />
+              </button>
+            </div>
+          </article>
+          }
+
+          @if (addonService.installations$().length === 0) {
+          <div class="text-center py-8 text-muted-foreground border border-dashed rounded-lg">
+            No installations found. Add one to get started.
+          </div>
+          }
+        </div>
+
+        <button hlmBtn class="w-full" (click)="showAddInstallationDialog()">
+          <ng-icon hlm name="lucidePlus" class="mr-2 size-4" />
+          Add WoW Installation
+        </button>
+      </div>
+      }
+    </section>
+
+    <!-- Import/Export -->
+    <section hlmCard>
+      <button hlmCardHeader class="w-full text-left cursor-pointer hover:bg-muted/50"
+        (click)="toggleSection('import-export')">
+        <div class="flex items-center justify-between">
+          <h2 hlmCardTitle class="text-lg">Import / Export</h2>
+          <ng-icon hlm name="lucideChevronDown" class="size-5 transition-transform"
+            [class.rotate-180]="isSectionExpanded('import-export')" />
+        </div>
+      </button>
+
+      @if (isSectionExpanded('import-export')) {
+      <div hlmCardContent class="space-y-4">
+        <p class="text-sm text-muted-foreground">
+          Backup your addon list or import from another installation.
+        </p>
+
+        <div class="flex gap-3">
+          <button hlmBtn variant="outline" (click)="exportAddons()">Export Addon List</button>
+          <label hlmBtn variant="outline" class="cursor-pointer">
+            Import Addon List
+            <input type="file" accept=".json" (change)="importAddons($event)" class="hidden" />
+          </label>
+        </div>
+
+        <div hlmCard>
+          <div hlmCardContent class="p-4 text-sm">
+            <strong>Note:</strong> Export creates a JSON file with your addon list.
+            Importing will merge addons with your current installation.
+          </div>
+        </div>
+      </div>
+      }
+    </section>
+
+    <!-- App Configuration -->
+    <section hlmCard>
+      <button hlmCardHeader class="w-full text-left cursor-pointer hover:bg-muted/50" (click)="toggleSection('config')">
+        <div class="flex items-center justify-between">
+          <h2 hlmCard Title class="text-lg">App Configuration</h2>
+          <ng-icon hlm name="lucideChevronDown" class="size-5 transition-transform"
+            [class.rotate-180]="isSectionExpanded('config')" />
+        </div>
+      </button>
+
+      @if (isSectionExpanded('config')) {
+      <div hlmCardContent>
+        <div class="space-y-6">
+          <!-- Auto-Update -->
+          <div class="flex items-center justify-between">
+            <div class="space-y-0.5">
+              <label class="text-sm font-medium">Auto-Update Check</label>
+              <p class="text-xs text-muted-foreground">Automatically check for addon updates on startup</p>
+            </div>
+            <hlm-switch [(checked)]="autoUpdate" />
+          </div>
+
+          <!-- Beta Versions -->
+          <div class="flex items-center justify-between">
+            <div class="space-y-0.5">
+              <label class="text-sm font-medium">Show Beta Versions</label>
+              <p class="text-xs text-muted-foreground">Include pre-release versions in updates</p>
+            </div>
+            <hlm-switch [(checked)]="showBetaVersions" />
+          </div>
+
+          <!-- Theme -->
+          <div class="flex items-center justify-between">
+            <div class="space-y-0.5">
+              <label class="text-sm font-medium">Theme</label>
+              <p class="text-xs text-muted-foreground">Choose your preferred color scheme</p>
+            </div>
+            <brn-select [value]="theme()" (valueChange)="theme.set($any($event))">
+              <hlm-select-trigger class="w-48">
+                <hlm-select-value />
+              </hlm-select-trigger>
+              <hlm-select-content>
+                <hlm-option value="dark">Dark</hlm-option>
+                <hlm-option value="light">Light (Coming Soon)</hlm-option>
+              </hlm-select-content>
+            </brn-select>
+          </div>
+        </div>
+      </div>
+      }
+    </section>
+
+    <!-- About -->
+    <section hlmCard>
+      <button hlmCardHeader class="w-full text-left cursor-pointer hover:bg-muted/50" (click)="toggleSection('about')">
+        <div class="flex items-center justify-between">
+          <h2 hlmCardTitle class="text-lg">About</h2>
+          <ng-icon hlm name="lucideChevronDown" class="size-5 transition-transform"
+            [class.rotate-180]="isSectionExpanded('about')" />
+        </div>
+      </button>
+
+      @if (isSectionExpanded('about')) {
+      <div hlmCardContent class="space-y-2">
+        <h3 class="text-xl font-semibold">Zen Addons Manager</h3>
+        <p class="text-sm text-muted-foreground">Version 1.0.0</p>
+        <p class="text-xs text-muted-foreground">© 2024 Zen Addons Manager</p>
+        <p class="text-sm text-muted-foreground mt-4">
+          A clean, minimal addon manager for World of Warcraft.
+          Built with Angular and Electron.
+        </p>
+      </div>
+      }
+    </section>
+  </div>
+</div>
+
+<!-- Add Installation Dialog -->
+@if (showAddDialog()) {
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+  (click)="showAddDialog.set(false)">
+  <div hlmCard class="w-full max-w-lg" (click)="$event.stopPropagation()">
+    <div hlmCardHeader>
+      <h3 hlmCardTitle>Add WoW Installation</h3>
+      <p hlmCardDescription>Select your WoW version and addons directory</p>
+    </div>
+
+    <div hlmCardContent class="space-y-4">
+      <div class="space-y-2">
+        <label class="text-sm font-medium">WoW Version</label>
+        <brn-select [(ngModel)]="selectedVersion">
+          <hlm-select-trigger>
+            <hlm-select-value placeholder="Select Version..." />
+          </hlm-select-trigger>
+          <hlm-select-content>
+            <hlm-option value="Vanilla|1.12">Vanilla (1.12)</hlm-option>
+            <hlm-option value="Burning Crusade|2.4.3">Burning Crusade (2.4.3)</hlm-option>
+            <hlm-option value="Wrath of the Lich King|3.3.5">Wrath of the Lich King (3.3.5)</hlm-option>
+            <hlm-option value="Cataclysm|4.3.4">Cataclysm (4.3.4)</hlm-option>
+            <hlm-option value="Pandaria|5.4.8">Pandaria (5.4.8)</hlm-option>
+          </hlm-select-content>
+        </brn-select>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-sm font-medium">Addons Directory</label>
+        <div class="flex gap-2">
+          <input hlmInput type="text" [(ngModel)]="customDirectory" placeholder="Path to Interface/AddOns" readonly
+            class="flex-1" />
+          <button hlmBtn variant="outline" (click)="browseDirectory()">
+            <ng-icon hlm name="lucideFolderOpen" class="mr-2 size-4" />
+            Browse
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div hlmCardFooter class="flex justify-end gap-2">
+      <button hlmBtn variant="outline" (click)="showAddDialog.set(false)">Cancel</button>
+      <button hlmBtn (click)="addInstallation()" [disabled]="!selectedVersion() || !customDirectory()">
+        Add Installation
+      </button>
+    </div>
+  </div>
+</div>
+}

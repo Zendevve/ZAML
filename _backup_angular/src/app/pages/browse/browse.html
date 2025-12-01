@@ -1,0 +1,88 @@
+<div class="p-8 max-w-[1600px] mx-auto space-y-6">
+  <header>
+    <h1 class="text-3xl font-bold tracking-tight">Browse Addons</h1>
+    <p class="text-muted-foreground mt-2">Discover and install new addons from the catalogue</p>
+  </header>
+
+  <section hlmCard>
+    <div hlmCardContent class="pt-6">
+      <div class="flex gap-3">
+        <input hlmInput type="text" placeholder="Paste GitHub URL or direct download link..." [(ngModel)]="manualUrl"
+          class="flex-1" />
+        <button hlmBtn (click)="installFromUrl()" [disabled]="!manualUrl() || isInstalling()">
+          <ng-icon hlm name="lucideDownload" class="mr-2 size-4" />
+          {{ isInstalling() ? 'Installing...' : 'Install from URL' }}
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <div class="space-y-4">
+    <input hlmInput type="search" placeholder="Search addons, authors, or descriptions..." [(ngModel)]="searchTerm"
+      class="max-w-md" />
+
+    <div class="flex items-center gap-4">
+      <span class="text-sm font-medium text-muted-foreground">Categories:</span>
+      <div class="flex flex-wrap gap-2">
+        @for (category of addonService.categories(); track category) {
+        <button hlmBtn [variant]="selectedCategory() === category ? 'default' : 'outline'" size="sm"
+          (click)="selectedCategory.set(category)">
+          {{ category }}
+        </button>
+        }
+      </div>
+    </div>
+
+    <p class="text-sm text-muted-foreground">
+      {{ filteredAddons().length }} addon{{ filteredAddons().length === 1 ? '' : 's' }} found
+    </p>
+  </div>
+
+  <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    @for (addon of filteredAddons(); track addon.id) {
+    <article hlmCard>
+      <div hlmCardHeader>
+        <h3 hlmCardTitle class="text-lg">{{ addon.name }}</h3>
+        <p hlmCardDescription class="flex items-center gap-2 text-xs">
+          <span class="font-mono">v{{ addon.latestVersion }}</span>
+          <span class="text-muted-foreground">•</span>
+          <span>{{ addon.author }}</span>
+        </p>
+      </div>
+      <div hlmCardContent class="flex-1">
+        <p class="text-sm text-muted-foreground line-clamp-3">{{ addon.description }}</p>
+      </div>
+      <div hlmCardFooter class="flex justify-between items-center">
+        <div class="flex flex-col gap-1.5">
+          <span hlmBadge variant="outline" class="w-fit">{{ addon.category }}</span>
+          @if (addon.downloads) {
+          <span class="text-xs text-muted-foreground">{{ addon.downloads.toLocaleString() }} downloads</span>
+          }
+        </div>
+        <div class="flex gap-2">
+          @if (isInstalled(addon)) {
+          <button hlmBtn variant="outline" size="sm" disabled>
+            <ng-icon hlm name="lucideCheck" class="mr-2 size-4" />
+            Installed
+          </button>
+          } @else {
+          <button hlmBtn size="sm" (click)="addonService.installFromCatalogue(addon)">
+            Install
+          </button>
+          }
+          <a hlmBtn variant="ghost" size="icon" [href]="addon.sourceUrl" target="_blank" title="View on GitHub">
+            <ng-icon hlm name="lucideExternalLink" class="size-4" />
+          </a>
+        </div>
+      </div>
+    </article>
+    } @empty {
+    <div class="col-span-full text-center py-16 space-y-4">
+      <p class="text-lg text-muted-foreground">No addons found matching your search.</p>
+      <button hlmBtn variant="outline" (click)="searchTerm.set(''); selectedCategory.set('All')">
+        Clear Filters
+      </button>
+    </div>
+    }
+  </div>
+</div>

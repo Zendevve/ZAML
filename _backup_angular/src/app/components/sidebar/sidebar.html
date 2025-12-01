@@ -1,0 +1,25 @@
+<hlm-sidebar collapsible="icon" class="border-r border-border bg-sidebar">
+  <hlm-sidebar-header class="flex h-16 items-center px-4">
+    <h1 class="text-xl font-bold text-sidebar-foreground transition-opacity group-data-[collapsible=icon]:opacity-0">
+      Zen Addons
+    </h1>
+  </hlm-sidebar-header>
+
+  <hlm-sidebar-content>
+    <ul hlmSidebarMenu>
+      @for (item of navItems; track item.path) {
+      <li hlmSidebarMenuItem>
+        <a hlmSidebarMenuButton [routerLink]="item.path"
+          routerLinkActive="bg-sidebar-accent text-sidebar-accent-foreground" class="w-full justify-start gap-3">
+          <ng-icon hlm [name]="item.icon" class="size-5" />
+          <span class="group-data-[collapsible=icon]:hidden">{{ item.label }}</span>
+        </a>
+      </li>
+      }
+    </ul>
+  </hlm-sidebar-content>
+
+  <hlm-sidebar-footer>
+    <!-- Optional footer -->
+  </hlm-sidebar-footer>
+</hlm-sidebar>
