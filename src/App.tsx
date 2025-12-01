@@ -5,9 +5,12 @@ import { Settings } from './pages/Settings'
 import { Browse } from './pages/Browse'
 import { Dashboard } from './pages'
 
+import { Toaster } from 'sonner'
+
 function App() {
   return (
     <BrowserRouter>
+      <Toaster richColors position="bottom-right" theme="dark" />
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Navigate to="/manage" replace />} />

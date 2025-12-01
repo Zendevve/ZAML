@@ -13,7 +13,10 @@ electron.contextBridge.exposeInMainWorld("electron", {
       "git-checkout",
       "git-check-updates",
       "auto-detect-wow-folder",
-      "search-github"
+      "search-github",
+      "update-all-addons",
+      "open-file-dialog",
+      "install-addon-from-file"
     ];
     if (validChannels.includes(channel)) {
       return electron.ipcRenderer.invoke(channel, ...args);

@@ -106,5 +106,32 @@ export const electronService = {
    */
   async searchGithub(query: string): Promise<{ success: boolean; results?: any[]; error?: string }> {
     return invoke('search-github', query)
+  },
+
+  /**
+   * Update all git addons
+   */
+  async updateAllAddons(addonsFolder: string): Promise<{
+    success: boolean;
+    updated?: number;
+    failed?: number;
+    errors?: string[];
+    error?: string
+  }> {
+    return invoke('update-all-addons', addonsFolder)
+  },
+
+  /**
+   * Open a file picker dialog
+   */
+  async openFileDialog(filters?: any[]): Promise<string | undefined> {
+    return invoke('open-file-dialog', filters)
+  },
+
+  /**
+   * Install an addon from a local file (zip)
+   */
+  async installAddonFromFile(filePath: string, addonsFolder: string): Promise<{ success: boolean; addonName?: string; error?: string }> {
+    return invoke('install-addon-from-file', { filePath, addonsFolder })
   }
 }

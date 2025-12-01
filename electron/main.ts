@@ -131,6 +131,88 @@ function setupIpcHandlers() {
     return result.filePaths[0];
   });
 
+  // File picker (for zips)
+  ipcMain.handle('open-file-dialog', async (event, filters) => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: filters || []
+    });
+    return result.filePaths[0];
+  });
+
+  // Install addon from local file
+  ipcMain.handle('install-addon-from-file', async (event, { filePath, addonsFolder }) => {
+    const tempDir = path.join(os.tmpdir(), `zen-addon-local-${Date.now()}`);
+
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+
+      const zip = new AdmZip(filePath);
+      const extractPath = path.join(tempDir, 'extracted');
+      zip.extractAllTo(extractPath, true);
+
+      const entries = await fs.readdir(extractPath, { withFileTypes: true });
+      let addonFolder = extractPath;
+
+      if (entries.length === 1 && entries[0].isDirectory()) {
+        addonFolder = path.join(extractPath, entries[0].name);
+      }
+
+      const tocInfo = await findTocFile(addonFolder);
+      if (!tocInfo) {
+        throw new Error('No .toc file found in ZIP');
+      }
+
+      let cleanName = tocInfo.tocName;
+      const tocDir = path.dirname(tocInfo.tocPath);
+      const currentName = path.basename(tocDir);
+
+      // Clean up common suffixes
+      const suffixes = ['-master', '-main', '-develop', '-trunk'];
+      for (const suffix of suffixes) {
+        if (currentName.endsWith(suffix)) {
+          cleanName = currentName.replace(suffix, '');
+          break;
+        }
+      }
+
+      const finalPath = path.join(addonsFolder, cleanName);
+
+      try {
+        await fs.access(finalPath);
+        return { success: false, error: `Addon "${cleanName}" already installed` };
+      } catch {
+        // Doesn't exist, proceed
+      }
+
+      // Rename if needed
+      const renamedPath = path.join(path.dirname(tocDir), cleanName);
+      if (tocDir !== renamedPath) {
+        await fs.rename(tocDir, renamedPath);
+      }
+
+      // Move to addons folder
+      try {
+        await fs.rename(renamedPath, finalPath);
+      } catch (error: any) {
+        if (error.code === 'EXDEV') {
+          await fs.cp(renamedPath, finalPath, { recursive: true });
+          await fs.rm(renamedPath, { recursive: true, force: true });
+        } else {
+          throw error;
+        }
+      }
+
+      await fs.rm(tempDir, { recursive: true, force: true });
+      return { success: true, addonName: cleanName };
+    } catch (error: any) {
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+      } catch { }
+      return { success: false, error: error.message };
+    }
+  });
+
   // Scan addon folder
   ipcMain.handle('scan-addon-folder', async (event, folderPath) => {
     try {
@@ -269,6 +351,56 @@ function setupIpcHandlers() {
       const status = await git.status();
       const hasUpdates = status.behind > 0;
       return { success: true, hasUpdates, behind: status.behind };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Update All Addons
+  ipcMain.handle('update-all-addons', async (event, addonsFolder) => {
+    try {
+      const entries = await fs.readdir(addonsFolder, { withFileTypes: true });
+      let successCount = 0;
+      let failCount = 0;
+      const errors: string[] = [];
+
+      // We'll process them in parallel with a limit to avoid spawning too many git processes
+      // But for simplicity in this MVP, we'll do a simple loop or Promise.all
+      // Let's filter for git repos first
+      const gitAddons = [];
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const addonPath = path.join(addonsFolder, entry.name);
+          try {
+            await fs.access(path.join(addonPath, '.git'));
+            gitAddons.push(addonPath);
+          } catch { }
+        }
+      }
+
+      if (gitAddons.length === 0) {
+        return { success: true, updated: 0, failed: 0, errors: [] };
+      }
+
+      const results = await Promise.all(gitAddons.map(async (addonPath) => {
+        try {
+          const git = simpleGit(addonPath);
+          await git.pull();
+          return { success: true };
+        } catch (error: any) {
+          return { success: false, error: `${path.basename(addonPath)}: ${error.message}` };
+        }
+      }));
+
+      results.forEach(res => {
+        if (res.success) successCount++;
+        else {
+          failCount++;
+          if (res.error) errors.push(res.error);
+        }
+      });
+
+      return { success: true, updated: successCount, failed: failCount, errors };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
