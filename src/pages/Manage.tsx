@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Search, RefreshCw, Trash2, DownloadCloud, MoreVertical, Settings, Box, Activity, Wallet, ChevronDown, ChevronRight, Filter, Plus, FileUp, Link as LinkIcon, Globe, ExternalLink, Copy, Share2, Ban, Play, CheckCircle2 } from 'lucide-react'
+import { Search, RefreshCw, Trash2, DownloadCloud, MoreVertical, Settings, Box, Activity, Wallet, ChevronDown, ChevronRight, Filter, Plus, FileUp, Link as LinkIcon, Globe, ExternalLink, Copy, Share2, Ban, Play, CheckCircle2, Gamepad2 } from 'lucide-react'
 import { electronService } from '@/services/electron'
 import { storageService } from '@/services/storage'
 import type { Addon } from '@/types/addon'
@@ -28,6 +28,20 @@ function formatLastPlayed(timestamp: number): string {
   if (hours < 24) return `${hours}h ago`
   if (days < 7) return `${days}d ago`
   return new Date(timestamp).toLocaleDateString()
+}
+
+// Helper to get expansion icon style
+function getExpansionIcon(version: string = '') {
+  switch (version) {
+    case '1.12': return { color: 'bg-amber-900', text: '1.12', label: 'Vanilla' }
+    case '2.4.3': return { color: 'bg-green-900', text: 'TBC', label: 'TBC' }
+    case '3.3.5': return { color: 'bg-blue-900', text: 'WotLK', label: 'Wrath' }
+    case '4.3.4': return { color: 'bg-orange-900', text: 'Cata', label: 'Cataclysm' }
+    case '5.4.8': return { color: 'bg-emerald-900', text: 'MoP', label: 'Pandaria' }
+    case 'retail': return { color: 'bg-slate-900', text: 'Retail', label: 'Retail' }
+    case 'classic': return { color: 'bg-yellow-900', text: 'SoD', label: 'Classic' }
+    default: return { color: 'bg-secondary', text: 'WoW', label: 'Unknown' }
+  }
 }
 
 export function Manage() {
@@ -189,7 +203,7 @@ export function Manage() {
         storageService.updateInstallation(activeInstallation.id, {
           lastPlayed: now
         })
-        setActiveInstallation({...activeInstallation, lastPlayed: now})
+        setActiveInstallation({ ...activeInstallation, lastPlayed: now })
       }
       toast.success('Game launched!', { id: toastId })
     } else {
@@ -586,8 +600,20 @@ export function Manage() {
                           <ChevronRight className="size-4 text-muted-foreground" />
                         )}
                       </div>
-                      <div className="size-10 rounded bg-secondary flex items-center justify-center text-muted-foreground font-bold shrink-0">
-                        {addon.name[0]}
+                      <div className="size-10 rounded overflow-hidden shrink-0 relative">
+                        {addon.author && addon.author !== 'Unknown' && (
+                          <img
+                            src={`https://github.com/${addon.author}.png?size=64`}
+                            alt={addon.author}
+                            className="w-full h-full object-cover absolute inset-0 z-10"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                            }}
+                          />
+                        )}
+                        <div className={`w-full h-full flex items-center justify-center text-[10px] font-bold text-white ${getExpansionIcon(activeInstallation?.version).color}`}>
+                          {getExpansionIcon(activeInstallation?.version).text}
+                        </div>
                       </div>
                       <div className="min-w-0">
                         <div className="font-semibold truncate">{addon.title || addon.name}</div>
