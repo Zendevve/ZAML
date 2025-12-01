@@ -6,7 +6,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Search, RefreshCw, Trash2, DownloadCloud, MoreVertical, Settings, Box, Activity, Wallet, ChevronDown, ChevronRight, Filter, Plus, FileUp, Link as LinkIcon, Globe, ExternalLink, Copy, Share2, Ban, Play, CheckCircle2, Gamepad2 } from 'lucide-react'
+import { Search, RefreshCw, Trash2, DownloadCloud, MoreVertical, Settings, Activity, ChevronDown, ChevronRight, Filter, Plus, FileUp, Link as LinkIcon, Globe, ExternalLink, Copy, Share2, Ban, Play, CheckCircle2 } from 'lucide-react'
+import { RightSidebar } from '@/components/RightSidebar'
 import { electronService } from '@/services/electron'
 import { storageService } from '@/services/storage'
 import type { Addon } from '@/types/addon'
@@ -313,7 +314,7 @@ export function Manage() {
     }
 
     const toastId = toast.loading('Installing addon from file...')
-    const result = await electronService.installAddonFromFile(filePath, addonFolder)
+    const result = await electronService.installAddonFromFile(filePath!, addonFolder)
 
     if (result.success) {
       toast.success(`Installed ${result.addonName}`, { id: toastId })
@@ -638,7 +639,8 @@ export function Manage() {
                     </div>
 
                     <div className="flex items-center justify-end gap-3">
-                      {addon.source === 'git' && (
+                      {/* Only show update icon when addon is outdated */}
+                      {addon.source === 'git' && addon.status === 'outdated' && (
                         <Button
                           size="icon"
                           variant="ghost"
@@ -656,18 +658,10 @@ export function Manage() {
                         disabled={operatingAddonId !== null}
                       />
 
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => deleteAddon(addon)}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-
+                      {/* Always visible 3-dots menu */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost" className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-foreground">
                             <MoreVertical className="size-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -676,12 +670,16 @@ export function Manage() {
                             <ExternalLink className="mr-2 size-4" />
                             <span>Show file</span>
                           </DropdownMenuItem>
-                          {addon.url && (
-                            <DropdownMenuItem onClick={() => copyLink(addon.url)}>
+                          {addon.sourceUrl && (
+                            <DropdownMenuItem onClick={() => copyLink(addon.sourceUrl)}>
                               <Copy className="mr-2 size-4" />
                               <span>Copy link</span>
                             </DropdownMenuItem>
                           )}
+                          <DropdownMenuItem onClick={() => deleteAddon(addon)} className="text-destructive focus:text-destructive">
+                            <Trash2 className="mr-2 size-4" />
+                            <span>Delete</span>
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -695,7 +693,7 @@ export function Manage() {
                           <span className="font-medium text-foreground">Path:</span> {addon.path}
                         </div>
                         <div>
-                          <span className="font-medium text-foreground">Source:</span> {addon.url || 'Local'}
+                          <span className="font-medium text-foreground">Source:</span> {addon.sourceUrl || 'Local'}
                         </div>
                       </div>
                     </div>
@@ -714,39 +712,7 @@ export function Manage() {
       </div>
 
       {/* Right Sidebar */}
-      <div className="w-80 border-l border-border bg-card/30 p-6 hidden xl:block">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">Playing as</h3>
-          </div>
-          <div className="p-4 rounded-lg bg-card border border-border flex items-center gap-3">
-            <div className="size-10 rounded bg-primary/20 flex items-center justify-center">
-              <Activity className="size-5 text-primary" />
-            </div>
-            <div>
-              <div className="font-medium">{activeInstallation?.name || 'No Profile'}</div>
-              <div className="text-xs text-muted-foreground">{WOW_VERSIONS.find(v => v.value === activeInstallation?.version)?.label || activeInstallation?.version || 'Unknown'}</div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h3 className="font-semibold mb-4">News</h3>
-          <div className="space-y-4">
-            <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/10">
-              <div className="flex items-center gap-2 mb-2">
-                <Wallet className="size-4 text-primary" />
-                <span className="text-xs font-medium text-primary">Update</span>
-              </div>
-              <h4 className="font-bold mb-1">ZenAddons v1.0</h4>
-              <p className="text-xs text-muted-foreground mb-3">
-                Manage your addons with ease.
-              </p>
-              <Button size="sm" className="w-full">Read more</Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <RightSidebar installation={activeInstallation} />
 
       {/* URL Install Dialog */}
       <Dialog open={isUrlDialogOpen} onOpenChange={setIsUrlDialogOpen}>

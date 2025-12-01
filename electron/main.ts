@@ -31,7 +31,7 @@ interface Addon {
 
 // ===== Helper Functions =====
 
-function parseTocFile(addonName: string, tocContent: string, addonPath: string, status: 'enabled' | 'disabled', stats: fs.Stats): Addon {
+function parseTocFile(addonName: string, tocContent: string, addonPath: string, status: 'enabled' | 'disabled', stats: Awaited<ReturnType<typeof fs.stat>>): Addon {
   const lines = tocContent.split('\n');
   const addon: Addon = {
     id: addonName,

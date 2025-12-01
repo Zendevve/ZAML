@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Star, Download, Activity, Wallet } from 'lucide-react'
+import { ArrowRight, Star, Download } from 'lucide-react'
+import { RightSidebar } from '@/components/RightSidebar'
 import { useNavigate } from 'react-router-dom'
 
 export function Dashboard() {
@@ -111,39 +112,7 @@ export function Dashboard() {
       </div>
 
       {/* Right Sidebar */}
-      <div className="w-80 border-l border-border bg-card/30 p-6 hidden xl:block">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">Playing as</h3>
-          </div>
-          <div className="p-4 rounded-lg bg-card border border-border flex items-center gap-3">
-            <div className="size-10 rounded bg-primary/20 flex items-center justify-center">
-              <Activity className="size-5 text-primary" />
-            </div>
-            <div>
-              <div className="font-medium">Default Profile</div>
-              <div className="text-xs text-muted-foreground">WoW Retail</div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h3 className="font-semibold mb-4">News</h3>
-          <div className="space-y-4">
-            <div className="p-4 rounded-lg bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/10">
-              <div className="flex items-center gap-2 mb-2">
-                <Wallet className="size-4 text-primary" />
-                <span className="text-xs font-medium text-primary">Update</span>
-              </div>
-              <h4 className="font-bold mb-1">ZenAddons v1.0</h4>
-              <p className="text-xs text-muted-foreground mb-3">
-                The new manager is finally here with git support!
-              </p>
-              <Button size="sm" className="w-full">Read more</Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <RightSidebar />
     </div>
   )
 }

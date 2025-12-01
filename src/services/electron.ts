@@ -1,4 +1,4 @@
-import type { Addon, ScanAddonsResult, InstallAddonParams, InstallAddonResult } from '@/types/addon'
+import type { ScanAddonsResult, InstallAddonParams, InstallAddonResult } from '@/types/addon'
 
 // Electron IPC bridge (accessing window.electron or window.require)
 declare global {

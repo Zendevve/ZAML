@@ -57,6 +57,66 @@ async function findTocFile(dirPath) {
   }
   return null;
 }
+function mapInterfaceToVersion(interfaceVersion) {
+  const versions = [];
+  if (interfaceVersion >= 11200 && interfaceVersion < 2e4) versions.push("1.12");
+  if (interfaceVersion >= 20400 && interfaceVersion < 3e4) versions.push("2.4.3");
+  if (interfaceVersion >= 30300 && interfaceVersion < 4e4) versions.push("3.3.5");
+  if (interfaceVersion >= 40300 && interfaceVersion < 5e4) versions.push("4.3.4");
+  if (interfaceVersion >= 50400 && interfaceVersion < 1e5) versions.push("5.4.8");
+  if (interfaceVersion >= 11e4) {
+    versions.push("retail");
+    versions.push("classic");
+  }
+  return versions;
+}
+async function fetchTocFromGithub(owner, repo) {
+  try {
+    const tocPatterns = [
+      `${repo}.toc`,
+      `${repo}_Vanilla.toc`,
+      `${repo}_TBC.toc`,
+      `${repo}_Wrath.toc`,
+      `${repo}_Mainline.toc`
+    ];
+    for (const tocFile of tocPatterns) {
+      try {
+        const response = await axios.get(
+          `https://api.github.com/repos/${owner}/${repo}/contents/${tocFile}`,
+          {
+            headers: {
+              "Accept": "application/vnd.github.v3.raw",
+              "User-Agent": "ZenAddonsManager"
+            }
+          }
+        );
+        if (response.data) {
+          const content = response.data;
+          const lines = content.split("\n");
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith("## Interface:")) {
+              const interfaceStr = trimmed.replace("## Interface:", "").trim();
+              const interfaceNum = parseInt(interfaceStr, 10);
+              if (!isNaN(interfaceNum)) {
+                return {
+                  interface: interfaceNum,
+                  versions: mapInterfaceToVersion(interfaceNum)
+                };
+              }
+            }
+          }
+        }
+      } catch (err) {
+        continue;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.warn(`Failed to fetch TOC for ${owner}/${repo}`);
+    return null;
+  }
+}
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
@@ -315,28 +375,60 @@ function setupIpcHandlers() {
   });
   ipcMain.handle("search-github", async (event, query) => {
     try {
-      const response = await axios.get("https://api.github.com/search/repositories", {
-        params: {
-          q: `${query} topic:wow-addon language:lua`,
-          sort: "stars",
-          order: "desc",
-          per_page: 20
-        },
-        headers: {
-          "Accept": "application/vnd.github.v3+json",
-          "User-Agent": "ZenAddonsManager"
+      const searchTopics = [
+        `${query} topic:wow-addon language:lua`,
+        `${query} topic:world-of-warcraft language:lua`,
+        `${query} topic:warcraft language:lua`,
+        `${query} language:lua wow`
+      ];
+      const searchPromises = searchTopics.map(
+        (searchQuery) => axios.get("https://api.github.com/search/repositories", {
+          params: {
+            q: searchQuery,
+            sort: "stars",
+            order: "desc",
+            per_page: 15
+          },
+          headers: {
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "ZenAddonsManager"
+          }
+        }).catch((err) => {
+          console.warn(`Search failed for: ${searchQuery}`, err.message);
+          return { data: { items: [] } };
+        })
+      );
+      const responses = await Promise.all(searchPromises);
+      const seenRepos = /* @__PURE__ */ new Set();
+      const allResults = [];
+      for (const response of responses) {
+        for (const item of response.data.items) {
+          if (!seenRepos.has(item.full_name)) {
+            seenRepos.add(item.full_name);
+            allResults.push({
+              name: item.name,
+              full_name: item.full_name,
+              description: item.description,
+              url: item.clone_url,
+              stars: item.stargazers_count,
+              author: item.owner.login,
+              updated_at: item.updated_at
+            });
+          }
         }
-      });
-      const results = response.data.items.map((item) => ({
-        name: item.name,
-        full_name: item.full_name,
-        description: item.description,
-        url: item.clone_url,
-        stars: item.stargazers_count,
-        author: item.owner.login,
-        updated_at: item.updated_at
-      }));
-      return { success: true, results };
+      }
+      const results = allResults.sort((a, b) => b.stars - a.stars).slice(0, 30);
+      const resultsWithVersions = await Promise.all(
+        results.map(async (result) => {
+          const tocInfo = await fetchTocFromGithub(result.author, result.name);
+          return {
+            ...result,
+            interface: tocInfo?.interface,
+            compatibleVersions: tocInfo?.versions || []
+          };
+        })
+      );
+      return { success: true, results: resultsWithVersions };
     } catch (error) {
       console.error("GitHub Search Error:", error.response?.data || error.message);
       return { success: false, error: error.message };
