@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Check, X, AlertTriangle, RefreshCw, Trash2, FolderOpen } from 'lucide-react'
 import { electronService } from '@/services/electron'
+import { storageService } from '@/services/storage'
 import type { Addon } from '@/types/addon'
 
 export function Manage() {
@@ -13,17 +14,23 @@ export function Manage() {
   const [addonFolder, setAddonFolder] = useState<string | null>(null)
   const [operatingAddonId, setOperatingAddonId] = useState<string | null>(null)
 
+  // Load active installation on mount
+  useEffect(() => {
+    const activeInstallation = storageService.getActiveInstallation()
+    if (activeInstallation) {
+      setAddonFolder(activeInstallation.addonsPath)
+    } else {
+      // Fallback to auto-detect if no installation saved
+      detectWowFolder()
+    }
+  }, [])
+
   // Load addons when folder is set
   useEffect(() => {
     if (addonFolder) {
       loadAddons()
     }
   }, [addonFolder])
-
-  // Auto-detect WoW folder on mount
-  useEffect(() => {
-    detectWowFolder()
-  }, [])
 
   const detectWowFolder = async () => {
     const result = await electronService.autoDetectWowFolder()

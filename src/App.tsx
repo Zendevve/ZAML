@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { Manage } from './pages/Manage'
-import { Dashboard, Browse, Settings } from './pages'
+import { Settings } from './pages/Settings'
+import { Dashboard, Browse } from './pages'
 
 function App() {
   return (
