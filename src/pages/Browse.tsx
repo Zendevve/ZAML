@@ -18,6 +18,64 @@ interface SearchResult {
   updated_at: string
 }
 
+// Featured/Popular WoW Addons to show by default
+const FEATURED_ADDONS: SearchResult[] = [
+  {
+    name: 'WeakAuras2',
+    full_name: 'WeakAuras/WeakAuras2',
+    description: 'World of Warcraft addon that provides a powerful framework to display customizable graphics',
+    url: 'https://github.com/WeakAuras/WeakAuras2',
+    stars: 1200,
+    author: 'WeakAuras',
+    updated_at: new Date().toISOString()
+  },
+  {
+    name: 'ElvUI',
+    full_name: 'tukui-org/ElvUI',
+    description: 'Complete UI replacement for World of Warcraft',
+    url: 'https://github.com/tukui-org/ElvUI',
+    stars: 800,
+    author: 'tukui-org',
+    updated_at: new Date().toISOString()
+  },
+  {
+    name: 'DBM-Core',
+    full_name: 'DeadlyBossMods/DeadlyBossMods',
+    description: 'Deadly Boss Mods - The premier boss encounter addon',
+    url: 'https://github.com/DeadlyBossMods/DeadlyBossMods',
+    stars: 950,
+    author: 'DeadlyBossMods',
+    updated_at: new Date().toISOString()
+  },
+  {
+    name: 'Plater-Nameplates',
+    full_name: 'Tercioo/Plater-Nameplates',
+    description: 'Plater is a nameplate addon for World of Warcraft',
+    url: 'https://github.com/Tercioo/Plater-Nameplates',
+    stars: 600,
+    author: 'Tercioo',
+    updated_at: new Date().toISOString()
+  },
+  {
+    name: 'Details',
+    full_name: 'Tercioo/Details-Damage-Meter',
+    description: 'Details! Damage Meter for World of Warcraft',
+    url: 'https://github.com/Tercioo/Details-Damage-Meter',
+    stars: 750,
+    author: 'Tercioo',
+    updated_at: new Date().toISOString()
+  },
+  {
+    name: 'BigWigs',
+    full_name: 'BigWigsMods/BigWigs',
+    description: 'Modular, lightweight, non-intrusive approach to boss encounter warnings',
+    url: 'https://github.com/BigWigsMods/BigWigs',
+    stars: 500,
+    author: 'BigWigsMods',
+    updated_at: new Date().toISOString()
+  }
+]
+
 export function Browse() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -25,7 +83,7 @@ export function Browse() {
 
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [searchResults, setSearchResults] = useState<SearchResult[]>(FEATURED_ADDONS)
   const [loading, setLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
 
@@ -175,20 +233,30 @@ export function Browse() {
         {/* Results List */}
         <div className="flex-1 overflow-auto p-6 space-y-4">
           {!hasSearched && (
-            <div className="text-center py-20 text-muted-foreground">
-              <div className="size-16 rounded-full bg-secondary/50 flex items-center justify-center mx-auto mb-4">
-                <Search className="size-8 opacity-50" />
-              </div>
-              <h3 className="text-lg font-medium mb-1">Search for Addons</h3>
-              <p>Type in the search bar above to find addons from GitHub.</p>
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-2">Featured Addons</h2>
+              <p className="text-sm text-muted-foreground">Popular and trusted World of Warcraft addons from GitHub</p>
             </div>
           )}
 
           {searchResults.map((result) => (
             <div key={result.url} className="group flex gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/50 transition-all">
-              {/* Icon Placeholder */}
-              <div className="size-16 rounded-lg bg-secondary flex items-center justify-center shrink-0 text-2xl font-bold text-muted-foreground">
-                {result.name[0]}
+              {/* GitHub Profile Picture */}
+              <div className="size-16 rounded-lg overflow-hidden shrink-0 bg-secondary">
+                <img
+                  src={`https://github.com/${result.author}.png?size=64`}
+                  alt={`${result.author} avatar`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback to initial if image fails to load
+                    const target = e.currentTarget
+                    target.style.display = 'none'
+                    const fallback = document.createElement('div')
+                    fallback.className = 'w-full h-full flex items-center justify-center text-2xl font-bold text-muted-foreground'
+                    fallback.textContent = result.name[0]
+                    target.parentElement?.appendChild(fallback)
+                  }}
+                />
               </div>
 
               <div className="flex-1 min-w-0">
