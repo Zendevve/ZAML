@@ -12,6 +12,23 @@ import { storageService } from '@/services/storage'
 import type { Addon } from '@/types/addon'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
+import type { WowInstallation } from '@/types/installation'
+import { WOW_VERSIONS } from '@/types/installation'
+
+// Helper to format last played timestamp
+function formatLastPlayed(timestamp: number): string {
+  const now = Date.now()
+  const diff = now - timestamp
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (minutes < 1) return 'Just now'
+  if (minutes < 60) return `${minutes}m ago`
+  if (hours < 24) return `${hours}h ago`
+  if (days < 7) return `${days}d ago`
+  return new Date(timestamp).toLocaleDateString()
+}
 
 export function Manage() {
   const navigate = useNavigate()
@@ -20,6 +37,7 @@ export function Manage() {
   const [loading, setLoading] = useState(false)
   const [addonFolder, setAddonFolder] = useState<string | null>(null)
   const [executablePath, setExecutablePath] = useState<string | null>(null)
+  const [activeInstallation, setActiveInstallation] = useState<WowInstallation | null>(null)
   const [operatingAddonId, setOperatingAddonId] = useState<string | null>(null)
   const [selectedAddons, setSelectedAddons] = useState<string[]>([])
   const [expandedAddons, setExpandedAddons] = useState<string[]>([])
@@ -32,18 +50,13 @@ export function Manage() {
   // Load active installation on mount
   useEffect(() => {
     const init = async () => {
-      const activeInstallation = storageService.getActiveInstallation()
-      if (activeInstallation) {
-        setAddonFolder(activeInstallation.addonsPath)
+      const installation = storageService.getActiveInstallation()
+      if (installation) {
+        setActiveInstallation(installation)
+        setAddonFolder(installation.addonsPath)
 
-        if (activeInstallation.executablePath) {
-          setExecutablePath(activeInstallation.executablePath)
-        } else {
-          // Try to discover executable from addons path (assuming .../Interface/AddOns)
-          // We need to go up 2 levels
-          // Since we can't use path module here easily without polyfill, we'll rely on string manipulation or just wait for user to re-select
-          // Actually, we can try to validate the parent folders via IPC
-          // But for now, let's just leave it. If the user re-selects folder, we'll get it.
+        if (installation.executablePath) {
+          setExecutablePath(installation.executablePath)
         }
       } else {
         detectWowFolder()
@@ -170,6 +183,14 @@ export function Manage() {
     const result = await electronService.launchGame(executablePath)
 
     if (result.success) {
+      // Update last played time
+      if (activeInstallation) {
+        const now = Date.now()
+        storageService.updateInstallation(activeInstallation.id, {
+          lastPlayed: now
+        })
+        setActiveInstallation({...activeInstallation, lastPlayed: now})
+      }
       toast.success('Game launched!', { id: toastId })
     } else {
       toast.error(`Failed to launch game: ${result.error}`, { id: toastId })
@@ -379,15 +400,15 @@ export function Manage() {
                 <Box className="size-8 text-muted-foreground" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">My Addons</h1>
+                <h1 className="text-2xl font-bold">{activeInstallation?.name || 'My Addons'}</h1>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                   <span className="flex items-center gap-1">
                     <Activity className="size-4" />
-                    Retail 10.2.7
+                    {WOW_VERSIONS.find(v => v.value === activeInstallation?.version)?.label || activeInstallation?.version || 'Unknown'}
                   </span>
                   <span className="flex items-center gap-1">
                     <RefreshCw className="size-3" />
-                    Last played: Never
+                    Last played: {activeInstallation?.lastPlayed ? formatLastPlayed(activeInstallation.lastPlayed) : 'Never'}
                   </span>
                 </div>
               </div>
@@ -666,8 +687,8 @@ export function Manage() {
               <Activity className="size-5 text-primary" />
             </div>
             <div>
-              <div className="font-medium">Default Profile</div>
-              <div className="text-xs text-muted-foreground">WoW Retail</div>
+              <div className="font-medium">{activeInstallation?.name || 'No Profile'}</div>
+              <div className="text-xs text-muted-foreground">{WOW_VERSIONS.find(v => v.value === activeInstallation?.version)?.label || activeInstallation?.version || 'Unknown'}</div>
             </div>
           </div>
         </div>

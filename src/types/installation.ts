@@ -4,6 +4,7 @@ export interface WowInstallation {
   version: string
   addonsPath: string
   executablePath?: string
+  lastPlayed?: number
   isActive: boolean
 }
 
