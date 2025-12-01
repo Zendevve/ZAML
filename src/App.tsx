@@ -1,10 +1,21 @@
-import { useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Layout } from './components/Layout'
+import { Manage } from './pages/Manage'
+import { Dashboard, Browse, Settings } from './pages'
 
 function App() {
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-      <h1 className="text-4xl font-bold">Zen Addons Manager</h1>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Navigate to="/manage" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="manage" element={<Manage />} />
+          <Route path="browse" element={<Browse />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   )
 }
 
