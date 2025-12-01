@@ -2,7 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { Manage } from './pages/Manage'
 import { Settings } from './pages/Settings'
-import { Dashboard, Browse } from './pages'
+import { Browse } from './pages/Browse'
+import { Dashboard } from './pages'
 
 function App() {
   return (
