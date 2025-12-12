@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { Manage } from './pages/Manage'
 import { Settings } from './pages/Settings'
@@ -10,7 +10,7 @@ import { Toaster } from 'sonner'
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Toaster richColors position="bottom-right" theme="dark" />
       <Routes>
         <Route path="/" element={<Layout />}>
@@ -22,7 +22,7 @@ function App() {
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
 

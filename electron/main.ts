@@ -217,12 +217,23 @@ function createWindow() {
     win.loadURL(process.env.VITE_DEV_SERVER_URL);
     win.webContents.openDevTools();
   } else {
-    // In production, the React app is built to dist/index.html
-    // We need to point to that file.
-    // Assuming main.js is in dist-electron/main.js and index.html is in dist/index.html
-    // So we go up one level and into dist
-    win.loadFile(path.join(__dirname, '../dist/index.html'));
+    // In production, use app.getAppPath() for reliable path resolution
+    const appPath = app.getAppPath();
+    const indexPath = path.join(appPath, 'dist', 'index.html');
+    console.log('Loading:', indexPath);
+
+    win.loadFile(indexPath).catch((err) => {
+      console.error('Failed to load:', err);
+      // Fallback: try alternative path
+      const altPath = path.join(__dirname, '..', 'dist', 'index.html');
+      console.log('Trying fallback:', altPath);
+      win.loadFile(altPath).catch((err2) => {
+        console.error('Fallback also failed:', err2);
+      });
+    });
   }
+
+
 
   win.once('ready-to-show', () => {
     win.show();

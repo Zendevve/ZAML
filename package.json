@@ -60,5 +60,24 @@
     "vite": "^5.1.4",
     "vitest": "^4.0.15",
     "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.zendevve.addonsmanager",
+    "productName": "Zen Addons Manager",
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "!dist/win-unpacked",
+      "!dist/*.exe",
+      "!dist/*.blockmap",
+      "!dist/*.yml",
+      "!dist/*.yaml"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis"
+    }
   }
 }

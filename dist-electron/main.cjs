@@ -157,8 +157,19 @@ function createWindow() {
     win.loadURL(process.env.VITE_DEV_SERVER_URL);
     win.webContents.openDevTools();
   } else {
-    win.loadFile(path.join(__dirname$1, "../dist/index.html"));
+    const appPath = app.getAppPath();
+    const indexPath = path.join(appPath, "dist", "index.html");
+    console.log("Loading:", indexPath);
+    win.loadFile(indexPath).catch((err) => {
+      console.error("Failed to load:", err);
+      const altPath = path.join(__dirname$1, "..", "dist", "index.html");
+      console.log("Trying fallback:", altPath);
+      win.loadFile(altPath).catch((err2) => {
+        console.error("Fallback also failed:", err2);
+      });
+    });
   }
+  win.webContents.openDevTools();
   win.once("ready-to-show", () => {
     win.show();
   });
