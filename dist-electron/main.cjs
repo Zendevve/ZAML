@@ -669,15 +669,70 @@ function setupIpcHandlers() {
     }
     return { success: false, error: "WoW installation not found" };
   });
-  ipcMain.handle("launch-game", async (event, executablePath, cleanWdb) => {
+  ipcMain.handle("clean-wdb-cache", async (event, { wowPath }) => {
     try {
+      const cachePaths = [
+        path.join(wowPath, "WDB"),
+        path.join(wowPath, "Cache", "WDB"),
+        path.join(wowPath, "Cache")
+      ];
+      const cleaned = [];
+      for (const cachePath of cachePaths) {
+        try {
+          await fs.access(cachePath);
+          await fs.rm(cachePath, { recursive: true, force: true });
+          cleaned.push(cachePath);
+          console.log(`Cleaned cache: ${cachePath}`);
+        } catch {
+        }
+      }
+      return { success: true, cleaned };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+  ipcMain.handle("isolate-cache", async (event, { wowPath, profileId }) => {
+    try {
+      const cachePath = path.join(wowPath, "Cache");
+      const isolatedPath = path.join(wowPath, `Cache_${profileId}`);
+      try {
+        await fs.access(isolatedPath);
+        try {
+          await fs.access(cachePath);
+          const tempPath = path.join(wowPath, `Cache_temp_${Date.now()}`);
+          await fs.rename(cachePath, tempPath);
+          await fs.rename(isolatedPath, cachePath);
+          await fs.rm(tempPath, { recursive: true, force: true });
+        } catch {
+          await fs.rename(isolatedPath, cachePath);
+        }
+        return { success: true, action: "restored", path: cachePath };
+      } catch {
+        return { success: true, action: "none", path: cachePath };
+      }
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+  ipcMain.handle("launch-game", async (event, executablePath, cleanWdb, profileId) => {
+    try {
+      const gameDir = path.dirname(executablePath);
+      if (profileId) {
+        const cachePath = path.join(gameDir, "Cache");
+        try {
+          await fs.access(cachePath);
+          const isolatedPath = path.join(gameDir, `Cache_${profileId}`);
+          await fs.rm(isolatedPath, { recursive: true, force: true });
+          await fs.rename(cachePath, isolatedPath);
+          console.log(`Isolated cache for profile ${profileId}`);
+        } catch {
+        }
+      }
       if (cleanWdb) {
-        const gameDir = path.dirname(executablePath);
         const wdbPaths = [
           path.join(gameDir, "WDB"),
           path.join(gameDir, "Cache", "WDB"),
           path.join(gameDir, "Cache")
-          // Retail/Classic often just use Cache
         ];
         for (const wdbPath of wdbPaths) {
           try {

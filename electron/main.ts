@@ -863,16 +863,91 @@ function setupIpcHandlers() {
     return { success: false, error: 'WoW installation not found' };
   });
 
-  // Launch Game
-  // Launch Game
-  ipcMain.handle('launch-game', async (event, executablePath, cleanWdb) => {
+  // ===== Cache Hygiene System (Phase 2) =====
+
+  // Clean WDB/Cache folders (standalone for manual cleaning)
+  ipcMain.handle('clean-wdb-cache', async (event, { wowPath }: { wowPath: string }) => {
     try {
+      const cachePaths = [
+        path.join(wowPath, 'WDB'),
+        path.join(wowPath, 'Cache', 'WDB'),
+        path.join(wowPath, 'Cache')
+      ];
+
+      const cleaned: string[] = [];
+      for (const cachePath of cachePaths) {
+        try {
+          await fs.access(cachePath);
+          await fs.rm(cachePath, { recursive: true, force: true });
+          cleaned.push(cachePath);
+          console.log(`Cleaned cache: ${cachePath}`);
+        } catch {
+          // Path doesn't exist, skip
+        }
+      }
+
+      return { success: true, cleaned };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Isolate cache per server profile (rename existing cache)
+  ipcMain.handle('isolate-cache', async (event, { wowPath, profileId }: { wowPath: string; profileId: string }) => {
+    try {
+      const cachePath = path.join(wowPath, 'Cache');
+      const isolatedPath = path.join(wowPath, `Cache_${profileId}`);
+
+      // If isolated cache for this profile exists, restore it
+      try {
+        await fs.access(isolatedPath);
+        // First, backup current cache if it exists
+        try {
+          await fs.access(cachePath);
+          const tempPath = path.join(wowPath, `Cache_temp_${Date.now()}`);
+          await fs.rename(cachePath, tempPath);
+          await fs.rename(isolatedPath, cachePath);
+          // Delete the old temp (was current cache)
+          await fs.rm(tempPath, { recursive: true, force: true });
+        } catch {
+          // No current cache, just restore isolated
+          await fs.rename(isolatedPath, cachePath);
+        }
+        return { success: true, action: 'restored', path: cachePath };
+      } catch {
+        // No isolated cache exists, nothing to restore
+        return { success: true, action: 'none', path: cachePath };
+      }
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Launch Game (enhanced with cache isolation)
+  ipcMain.handle('launch-game', async (event, executablePath, cleanWdb, profileId?: string) => {
+    try {
+      const gameDir = path.dirname(executablePath);
+
+      // Cache isolation: if profileId provided, save current cache as isolated
+      if (profileId) {
+        const cachePath = path.join(gameDir, 'Cache');
+        try {
+          await fs.access(cachePath);
+          const isolatedPath = path.join(gameDir, `Cache_${profileId}`);
+          // Save current cache for this profile
+          await fs.rm(isolatedPath, { recursive: true, force: true });
+          await fs.rename(cachePath, isolatedPath);
+          console.log(`Isolated cache for profile ${profileId}`);
+        } catch {
+          // No cache to isolate
+        }
+      }
+
       if (cleanWdb) {
-        const gameDir = path.dirname(executablePath);
         const wdbPaths = [
           path.join(gameDir, 'WDB'),
           path.join(gameDir, 'Cache', 'WDB'),
-          path.join(gameDir, 'Cache') // Retail/Classic often just use Cache
+          path.join(gameDir, 'Cache')
         ];
 
         for (const wdbPath of wdbPaths) {

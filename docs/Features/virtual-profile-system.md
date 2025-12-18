@@ -173,7 +173,7 @@ sequenceDiagram
 - [x] Service methods exposed to frontend
 - [x] Unit tests for all parsing/injection logic (26 tests passing)
 - [x] Storage service integration for profile persistence
-- [ ] Settings UI for profile management
-- [ ] Profile selector in RightSidebar or Dashboard
+- [x] Settings UI for profile management (ServerProfileSection)
+- [x] Profile selector in RightSidebar with quick-switch dropdown
 - [ ] Integration test with real file system
-- [ ] Feature documentation updated with final implementation
+- [x] Feature documentation updated with final implementation

@@ -219,6 +219,31 @@ export const electronService = {
     error?: string
   }> {
     return invoke('inject-server-profile', { wowPath, expansion, connectionString })
+  },
+
+  // ===== Cache Hygiene System =====
+
+  /**
+   * Clean WDB/Cache folders manually
+   */
+  async cleanWdbCache(wowPath: string): Promise<{
+    success: boolean;
+    cleaned?: string[];
+    error?: string
+  }> {
+    return invoke('clean-wdb-cache', { wowPath })
+  },
+
+  /**
+   * Isolate/restore cache for a specific profile
+   */
+  async isolateCache(wowPath: string, profileId: string): Promise<{
+    success: boolean;
+    action?: 'restored' | 'none';
+    path?: string;
+    error?: string
+  }> {
+    return invoke('isolate-cache', { wowPath, profileId })
   }
 }
 

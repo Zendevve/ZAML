@@ -27,7 +27,10 @@ contextBridge.exposeInMainWorld('electron', {
       'get-locale-folders',
       'detect-connection-files',
       'detect-custom-patcher',
-      'inject-server-profile'
+      'inject-server-profile',
+      // Cache Hygiene System
+      'clean-wdb-cache',
+      'isolate-cache'
     ]
 
     if (validChannels.includes(channel)) {
