@@ -7,6 +7,7 @@ const simpleGit = require("simple-git");
 const AdmZip = require("adm-zip");
 const axios = require("axios");
 const os = require("os");
+const crypto = require("crypto");
 const url = require("url");
 var _documentCurrentScript = typeof document !== "undefined" ? document.currentScript : null;
 const { app, BrowserWindow, ipcMain, dialog, shell } = electron;
@@ -769,6 +770,66 @@ function setupIpcHandlers() {
       return { success: true, executablePath: path.join(folderPath, foundExecutable), addonsPath, version: foundExecutable };
     }
     return { success: false, error: "No WoW executable found in this folder" };
+  });
+  ipcMain.handle("verify-client-integrity", async (event, { executablePath, version }) => {
+    try {
+      const fileBuffer = await fs.readFile(executablePath);
+      const fileSize = fileBuffer.length;
+      const hash = crypto.createHash("md5");
+      hash.update(fileBuffer);
+      const md5 = hash.digest("hex");
+      let knownHashes = { executables: {} };
+      try {
+        const hashesPath = path.join(__dirname$1, "..", "src", "data", "known-hashes.json");
+        const hashesContent = await fs.readFile(hashesPath, "utf-8");
+        knownHashes = JSON.parse(hashesContent);
+      } catch {
+        try {
+          const prodHashesPath = path.join(__dirname$1, "known-hashes.json");
+          const hashesContent = await fs.readFile(prodHashesPath, "utf-8");
+          knownHashes = JSON.parse(hashesContent);
+        } catch {
+        }
+      }
+      const versionData = knownHashes.executables?.[version];
+      if (!versionData) {
+        return {
+          success: true,
+          status: "unknown",
+          md5,
+          size: fileSize,
+          message: "Version not in database. Hash calculated for reference."
+        };
+      }
+      const matchingHash = versionData.hashes?.find((h) => h.md5.toLowerCase() === md5.toLowerCase());
+      if (matchingHash) {
+        if (matchingHash.modified) {
+          return {
+            success: true,
+            status: "modified-known",
+            md5,
+            size: fileSize,
+            message: matchingHash.description || "Known modified executable (e.g., LAA patched)"
+          };
+        }
+        return {
+          success: true,
+          status: "verified",
+          md5,
+          size: fileSize,
+          message: matchingHash.description || "Verified clean executable"
+        };
+      }
+      return {
+        success: true,
+        status: "mismatch",
+        md5,
+        size: fileSize,
+        message: `Hash does not match any known ${versionData.name} executable. May be modified or from different source.`
+      };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
   });
   ipcMain.handle("get-locale-folders", async (event, wowPath) => {
     try {

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Plus, Trash2, Check, FolderOpen } from 'lucide-react'
+import { Plus, Trash2, Check, FolderOpen, ShieldCheck, Loader2 } from 'lucide-react'
 import { storageService } from '@/services/storage'
 import { electronService } from '@/services/electron'
 import { ServerProfileSection } from '@/components/ServerProfileSection'
@@ -242,7 +242,42 @@ export function Settings() {
                     <TableCell className="text-xs font-mono text-muted-foreground max-w-md truncate">
                       {installation.addonsPath}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Verify Installation"
+                        onClick={async () => {
+                          if (!installation.executablePath) {
+                            toast.error('No executable path configured');
+                            return;
+                          }
+                          toast.loading('Verifying...', { id: 'verify' });
+                          const result = await electronService.verifyClientIntegrity(
+                            installation.executablePath,
+                            installation.version
+                          );
+                          if (result.success) {
+                            const statusColors: Record<string, string> = {
+                              verified: 'text-green-500',
+                              'modified-known': 'text-yellow-500',
+                              mismatch: 'text-red-500',
+                              unknown: 'text-muted-foreground'
+                            };
+                            toast.success(
+                              <div>
+                                <div className="font-medium">{result.message}</div>
+                                <div className="text-xs opacity-75">MD5: {result.md5?.substring(0, 16)}...</div>
+                              </div>,
+                              { id: 'verify' }
+                            );
+                          } else {
+                            toast.error(result.error || 'Verification failed', { id: 'verify' });
+                          }
+                        }}
+                      >
+                        <ShieldCheck className="size-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"

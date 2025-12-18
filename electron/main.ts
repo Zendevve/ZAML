@@ -7,6 +7,7 @@ import { simpleGit } from 'simple-git';
 import AdmZip from 'adm-zip';
 import axios from 'axios';
 import os from 'os';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 // Helper for __dirname in ESM
@@ -990,6 +991,85 @@ function setupIpcHandlers() {
     }
 
     return { success: false, error: 'No WoW executable found in this folder' };
+  });
+
+  // ===== Client Integrity Verification (Phase 3) =====
+
+  // Verify WoW executable integrity via MD5 hash
+  ipcMain.handle('verify-client-integrity', async (event, { executablePath, version }: { executablePath: string; version: string }) => {
+    try {
+      // Read the executable file
+      const fileBuffer = await fs.readFile(executablePath);
+      const fileSize = fileBuffer.length;
+
+      // Calculate MD5 hash
+      const hash = crypto.createHash('md5');
+      hash.update(fileBuffer);
+      const md5 = hash.digest('hex');
+
+      // Load known hashes (embedded in app)
+      // In production, this would be bundled; for dev, read from src/data
+      let knownHashes: any = { executables: {} };
+      try {
+        const hashesPath = path.join(__dirname, '..', 'src', 'data', 'known-hashes.json');
+        const hashesContent = await fs.readFile(hashesPath, 'utf-8');
+        knownHashes = JSON.parse(hashesContent);
+      } catch {
+        // In production build, might be in different location
+        try {
+          const prodHashesPath = path.join(__dirname, 'known-hashes.json');
+          const hashesContent = await fs.readFile(prodHashesPath, 'utf-8');
+          knownHashes = JSON.parse(hashesContent);
+        } catch {
+          // No hash database available
+        }
+      }
+
+      // Check against known hashes for this version
+      const versionData = knownHashes.executables?.[version];
+      if (!versionData) {
+        return {
+          success: true,
+          status: 'unknown',
+          md5,
+          size: fileSize,
+          message: 'Version not in database. Hash calculated for reference.'
+        };
+      }
+
+      // Find matching hash
+      const matchingHash = versionData.hashes?.find((h: any) => h.md5.toLowerCase() === md5.toLowerCase());
+
+      if (matchingHash) {
+        if (matchingHash.modified) {
+          return {
+            success: true,
+            status: 'modified-known',
+            md5,
+            size: fileSize,
+            message: matchingHash.description || 'Known modified executable (e.g., LAA patched)'
+          };
+        }
+        return {
+          success: true,
+          status: 'verified',
+          md5,
+          size: fileSize,
+          message: matchingHash.description || 'Verified clean executable'
+        };
+      }
+
+      // No match found
+      return {
+        success: true,
+        status: 'mismatch',
+        md5,
+        size: fileSize,
+        message: `Hash does not match any known ${versionData.name} executable. May be modified or from different source.`
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   });
 
   // ===== Virtual Profile System Handlers =====

@@ -27,7 +27,9 @@ electron.contextBridge.exposeInMainWorld("electron", {
       "inject-server-profile",
       // Cache Hygiene System
       "clean-wdb-cache",
-      "isolate-cache"
+      "isolate-cache",
+      // Client Integrity Verification
+      "verify-client-integrity"
     ];
     if (validChannels.includes(channel)) {
       return electron.ipcRenderer.invoke(channel, ...args);

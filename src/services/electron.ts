@@ -244,6 +244,22 @@ export const electronService = {
     error?: string
   }> {
     return invoke('isolate-cache', { wowPath, profileId })
+  },
+
+  // ===== Client Integrity Verification =====
+
+  /**
+   * Verify WoW executable integrity via MD5 hash
+   */
+  async verifyClientIntegrity(executablePath: string, version: string): Promise<{
+    success: boolean;
+    status?: 'verified' | 'modified-known' | 'mismatch' | 'unknown';
+    md5?: string;
+    size?: number;
+    message?: string;
+    error?: string
+  }> {
+    return invoke('verify-client-integrity', { executablePath, version })
   }
 }
 
