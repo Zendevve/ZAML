@@ -174,5 +174,51 @@ export const electronService = {
     if (window.electron?.off) {
       window.electron.off('addon-update-status', callback)
     }
+  },
+
+  // ===== Virtual Profile System =====
+
+  /**
+   * Get locale folders in the Data directory
+   */
+  async getLocaleFolders(wowPath: string): Promise<{ success: boolean; locales?: string[]; error?: string }> {
+    return invoke('get-locale-folders', wowPath)
+  },
+
+  /**
+   * Detect connection files (realmlist.wtf or Config.wtf) based on expansion
+   */
+  async detectConnectionFiles(wowPath: string, expansion: string): Promise<{
+    success: boolean;
+    files?: { type: 'realmlist' | 'config'; path: string; locale?: string; currentValue?: string }[];
+    error?: string
+  }> {
+    return invoke('detect-connection-files', { wowPath, expansion })
+  },
+
+  /**
+   * Detect custom patcher executables (for Cataclysm+)
+   */
+  async detectCustomPatcher(wowPath: string): Promise<{
+    success: boolean;
+    found?: boolean;
+    path?: string;
+    type?: string;
+    error?: string
+  }> {
+    return invoke('detect-custom-patcher', wowPath)
+  },
+
+  /**
+   * Inject server profile (write connection string to appropriate file)
+   */
+  async injectServerProfile(wowPath: string, expansion: string, connectionString: string): Promise<{
+    success: boolean;
+    modifiedFiles?: string[];
+    warnings?: string[];
+    error?: string
+  }> {
+    return invoke('inject-server-profile', { wowPath, expansion, connectionString })
   }
 }
+

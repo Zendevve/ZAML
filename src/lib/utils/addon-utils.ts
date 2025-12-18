@@ -101,3 +101,187 @@ export function parseTocContent(tocContent: string): ParsedTocData {
 
   return data;
 }
+
+// ============================================
+// Virtual Profile System Utilities
+// ============================================
+
+import type { ExpansionType } from '@/types/server-profile';
+
+/**
+ * Get possible realmlist.wtf file paths based on expansion
+ * Returns array of relative paths from WoW installation root
+ */
+export function getRealmlistPaths(expansion: ExpansionType): string[] {
+  switch (expansion) {
+    case '1.12':
+      // Vanilla: root or Data/{Locale}
+      return [
+        'realmlist.wtf',
+        'Data/enUS/realmlist.wtf',
+        'Data/enGB/realmlist.wtf',
+        'Data/deDE/realmlist.wtf',
+        'Data/frFR/realmlist.wtf',
+        'Data/esES/realmlist.wtf',
+        'Data/ruRU/realmlist.wtf',
+      ];
+    case '2.4.3':
+    case '3.3.5':
+    case '4.3.4':
+      // TBC/WotLK/Cata: Data/{Locale}
+      return [
+        'Data/enUS/realmlist.wtf',
+        'Data/enGB/realmlist.wtf',
+        'Data/deDE/realmlist.wtf',
+        'Data/frFR/realmlist.wtf',
+        'Data/esES/realmlist.wtf',
+        'Data/ruRU/realmlist.wtf',
+      ];
+    case '5.4.8':
+      // MoP: Uses Config.wtf instead
+      return [];
+    default:
+      return [];
+  }
+}
+
+/**
+ * Get Config.wtf path for MoP+ clients
+ */
+export function getConfigWtfPath(): string {
+  return 'WTF/Config.wtf';
+}
+
+/**
+ * Parse realmlist.wtf content and extract current server address
+ */
+export function parseRealmlist(content: string): string | null {
+  const lines = content.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim().toLowerCase();
+    if (trimmed.startsWith('set realmlist')) {
+      // Format: set realmlist logon.example.com
+      const match = line.match(/set\s+realmlist\s+["']?([^"'\r\n]+)["']?/i);
+      if (match) {
+        return match[1].trim();
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Inject server address into realmlist.wtf content
+ * Replaces existing "set realmlist" line or appends if not found
+ */
+export function injectRealmlist(content: string, serverAddress: string): string {
+  const lines = content.split('\n');
+  let found = false;
+
+  const newLines = lines.map(line => {
+    const trimmed = line.trim().toLowerCase();
+    if (trimmed.startsWith('set realmlist')) {
+      found = true;
+      return `set realmlist ${serverAddress}`;
+    }
+    return line;
+  });
+
+  if (!found) {
+    newLines.push(`set realmlist ${serverAddress}`);
+  }
+
+  return newLines.join('\n');
+}
+
+/**
+ * Parse Config.wtf content into key-value pairs
+ * Handles: SET portal "logon.example.com"
+ */
+export function parseConfigWtf(content: string): Record<string, string> {
+  const config: Record<string, string> = {};
+  const lines = content.split('\n');
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Match: SET varName "value" or SET varName value
+    const match = trimmed.match(/^SET\s+(\w+)\s+["']?([^"'\r\n]*)["']?$/i);
+    if (match) {
+      const [, key, value] = match;
+      config[key] = value.trim();
+    }
+  }
+
+  return config;
+}
+
+/**
+ * Inject or update a value in Config.wtf content
+ * Properly replaces existing key or appends if not found
+ */
+export function injectConfigWtf(content: string, key: string, value: string): string {
+  const lines = content.split('\n');
+  let found = false;
+  const keyLower = key.toLowerCase();
+
+  const newLines = lines.map(line => {
+    const trimmed = line.trim();
+    const match = trimmed.match(/^SET\s+(\w+)\s+/i);
+    if (match && match[1].toLowerCase() === keyLower) {
+      found = true;
+      return `SET ${key} "${value}"`;
+    }
+    return line;
+  });
+
+  if (!found) {
+    newLines.push(`SET ${key} "${value}"`);
+  }
+
+  return newLines.join('\n');
+}
+
+/**
+ * Get the connection key used in Config.wtf based on expansion
+ * MoP uses "portal", some use "realmName"
+ */
+export function getConfigConnectionKey(expansion: ExpansionType): string {
+  switch (expansion) {
+    case '5.4.8':
+      return 'portal';
+    default:
+      return 'portal';
+  }
+}
+
+/**
+ * Known custom patcher executable names
+ */
+export const KNOWN_PATCHERS = [
+  'connection_patcher.exe',
+  'WoW_Patched.exe',
+  'Wow-64.exe',
+  'arctium_launcher.exe',
+] as const;
+
+/**
+ * Detect locale folders in Data directory
+ * Returns array of found locale codes (e.g., ['enUS', 'enGB'])
+ */
+export function isValidLocaleFolder(folderName: string): boolean {
+  // Locale format: two lowercase letters + two uppercase letters
+  return /^[a-z]{2}[A-Z]{2}$/.test(folderName);
+}
+
+/**
+ * Sanitize addon folder name by removing common GitHub suffixes
+ */
+export function sanitizeAddonFolderName(folderName: string): string {
+  // Remove common GitHub suffixes: -master, -main, -develop, -dev
+  return folderName
+    .replace(/-master$/i, '')
+    .replace(/-main$/i, '')
+    .replace(/-develop$/i, '')
+    .replace(/-dev$/i, '');
+}
+

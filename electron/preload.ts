@@ -22,7 +22,12 @@ contextBridge.exposeInMainWorld('electron', {
       'install-addon-from-file',
       'open-in-explorer',
       'launch-game',
-      'validate-wow-path'
+      'validate-wow-path',
+      // Virtual Profile System
+      'get-locale-folders',
+      'detect-connection-files',
+      'detect-custom-patcher',
+      'inject-server-profile'
     ]
 
     if (validChannels.includes(channel)) {
