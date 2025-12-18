@@ -1,8 +1,8 @@
 <div align="center">
 
-# Zen Addons Manager
+# Zen Addons Manager & Launcher
 
-### A modern, beautiful World of Warcraft addon manager
+### A modern, beautiful World of Warcraft addon manager and launcher
 
 [![License](https://img.shields.io/github/license/Zendevve/zen-addons-manager?style=for-the-badge&color=89b4fa)](LICENSE)
 
